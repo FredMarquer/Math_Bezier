@@ -1,7 +1,8 @@
 ﻿
 
-#pragma region DECLARATIONS
 
+
+#pragma region DECLARATIONS
 
 #include <windows.h>
 #include <GL/glut.h>
@@ -16,8 +17,56 @@
 #include <stack>
 #include <list>
 #include <algorithm>
+#include "Matrix4.h"
 using namespace std;
 
+#define PI 3.14159265
+
+// Window variables
+int windowWidth = 500;
+int windowHeight = 500;
+
+
+// States variables
+int pickedPoint = -1;
+float pasAdaptif = 25;
+
+
+// Polygons variables
+vector<point> polygon;
+
+
+// Prototypes
+void Display(void);
+void DrawPolygonWire(vector<point> polygon, float r, float g, float b);
+void Keyboard(unsigned char touche, int x, int y);
+void Mouse(int bouton, int etat, int x, int y); 
+void MouseMove(int x, int y);
+void AddMenu();
+void AssignColor();
+void Select(int selection);
+
+vector<float>* SelectColor(int selection);
+
+void SelectBaseColor(int selection);
+void SelectDeCastelColor(int selection);
+void SelectSplineColor(int selection);
+void SelectParamUtil(int selection);
+void SelectMatriceScaling(int selection);
+void SelectMatriceRotation(int selection);
+
+void Reset();
+
+vector<point> DeCasteljau(vector<point>);
+point GetBezierPoint(float f, vector<point> polygon);
+vector<point> Spline(vector<point> polygon);
+
+vector<float>* BaseColor = new vector<float>;
+vector<float>* DeCastelColor = new vector<float>;
+vector<float>* SplineColor = new vector<float>;
+#pragma endregion DECLARATIONS
+
+#pragma region POINT_VEC_MAT
 
 // Struct
 struct point
@@ -26,6 +75,16 @@ struct point
 
 	point(){};
 	point(float _x, float _y) : x(_x), y(_y)
+	{
+	}
+};
+
+struct vec4
+{
+	float x, y, z, w;
+
+	vec4(){};
+	vec4(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w)
 	{
 	}
 };
@@ -42,37 +101,103 @@ inline point operator* (const point& a, const float k) {
 	return p;
 }
 
+inline vec4 operator *(const Matrix4& m, const vec4& d) {
+	vec4 result;
 
-// Window variables
-int windowWidth = 500;
-int windowHeight = 500;
+	result.x = (m.m00 * d.x) + (m.m01 * d.y) + (m.m02 * d.z) + (m.m03 * d.w);
+	result.y = (m.m10 * d.x) + (m.m11 * d.y) + (m.m12 * d.z) + (m.m13 * d.w);
+	result.z = (m.m20 * d.x) + (m.m21 * d.y) + (m.m22 * d.z) + (m.m23 * d.w);
+	result.w = (m.m30 * d.x) + (m.m31 * d.y) + (m.m32 * d.z) + (m.m33 * d.w);
+
+	return result;
+}
+
+inline point operator+(const point& a, const vec4& d) {
+	Matrix4 m = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	vec4 result;
+
+	m.m03 = a.x;
+	m.m13 = a.y;
+	m.m23 = 0.0f;
+	m.m33 = 1.0f;
+
+	result = m * d;
+
+	point p;
+	p.x = result.x;
+	p.y = result.y;
+
+	return p;
+}
+
+inline point operator-(const point& a, const vec4& d) {
+	Matrix4 m = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	vec4 sd;
+
+	sd.x = a.x;
+	sd.y = a.y;
+	sd.z = 0.0f;
+	sd.w = 1.0f;
+
+	m.m00 = cosf(d.x * PI / 180.0);
+	m.m01 = -sinf(d.x * PI / 180.0);
+	m.m10 = sinf(d.x * PI / 180.0);
+	m.m11 = cosf(d.x * PI / 180.0);
+
+	vec4 result;
+	result = m * sd;
+
+	point p;
+	p.x = result.x;
+	p.y = result.y;
+
+	return p;
+}
+
+inline point operator*(const point& a, const vec4& d) {
+	Matrix4 m = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	vec4 sd;
+
+	sd.x = a.x;
+	sd.y = a.y;
+	sd.z = 0.0f;
+	sd.w = 1.0f;
 
 
-// States variables
-int pickedPoint = -1;
+	m.m00 = d.x;
+	m.m11 = d.y;
+	m.m22 = d.z;
+	m.m33 = 1.0f;
 
+	vec4 result;
+	result = m * sd;
 
-// Polygons variables
-vector<point> polygon;
+	point p;
+	p.x = result.x;
+	p.y = result.y;
 
+	return p;
+}
 
-// Prototypes
-void Display(void);
-void DrawPolygonWire(vector<point> polygon, float r, float g, float b);
-void Keyboard(unsigned char touche, int x, int y);
-void Mouse(int bouton, int etat, int x, int y); 
-void MouseMove(int x, int y);
-
-void Reset();
-
-vector<point> DeCasteljau(vector<point>);
-point GetBezierPoint(float f, vector<point> polygon);
-vector<point> Spline(vector<point> polygon);
-
-
-#pragma endregion DECLARATIONS
-
-
+#pragma endregion POINT_VEC_MAT
 
 #pragma region MAIN
 
@@ -103,10 +228,15 @@ int main(int argc, char **argv)
 	// rq: le callback de fonction (fonction de rappel) est une fonction qui est passée en argument à une
 	// autre fonction. Ici, le main fait usage des deux fonctions de rappel (qui fonctionnent en même temps)
 	// alors qu'il ne les connaît pas par avance.
+	AssignColor();
+
+	AddMenu();
+
 
 	// Entrée dans la boucle principale de glut, traitement des évènements 
 	glutMainLoop();         // lancement de la boucle de réception des évènements
 	system("pause");
+
 	return 0;
 }
 
@@ -122,13 +252,13 @@ void Display()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	DrawPolygonWire(polygon, 0.0, 0.0, 1.0);
+	DrawPolygonWire(polygon, BaseColor->at(0), BaseColor->at(1), BaseColor->at(2));
 	
 	if (polygon.size() > 2) {
 		vector<point> bezier = DeCasteljau(polygon);
-		DrawPolygonWire(bezier, 1.0, 0.0, 0.0);
+		DrawPolygonWire(bezier, DeCastelColor->at(0), DeCastelColor->at(1), DeCastelColor->at(2));
 		vector<point> spline = Spline(polygon);
-		DrawPolygonWire(spline, 0.0, 1.0, 0.0);
+		DrawPolygonWire(spline, SplineColor->at(0), SplineColor->at(1), SplineColor->at(2));
 	}
 	
 	glutSwapBuffers();
@@ -193,7 +323,16 @@ void Keyboard(unsigned char touche, int x, int y){
 	case 'r':
 		Reset();
 		break;
+	case '+':
+		pasAdaptif++;
+		break;
+	case '-':
+		pasAdaptif--;
+		break;
 	}
+
+	
+
 
 	glutPostRedisplay();
 }
@@ -211,14 +350,224 @@ void Reset()
 	polygon.clear();
 }
 
+void AddMenu()
+{
+	int menuBColorWindow = glutCreateMenu(SelectBaseColor);
+	glutAddMenuEntry("Rouge", 0);
+	glutAddMenuEntry("Vert", 1);
+	glutAddMenuEntry("Bleu", 2);
+	glutAddMenuEntry("Rose", 3);
+	glutAddMenuEntry("Jaune", 4);
+	glutAddMenuEntry("Violet", 5);
+	glutAddMenuEntry("Orange", 6);
+	int menuDCWindow = glutCreateMenu(SelectDeCastelColor);
+	glutAddMenuEntry("Rouge", 0);
+	glutAddMenuEntry("Vert", 1);
+	glutAddMenuEntry("Bleu", 2);
+	glutAddMenuEntry("Rose", 3);
+	glutAddMenuEntry("Jaune", 4);
+	glutAddMenuEntry("Violet", 5);
+	glutAddMenuEntry("Orange", 6);
+	int menuSPWindow = glutCreateMenu(SelectSplineColor);
+	glutAddMenuEntry("Rouge", 0);
+	glutAddMenuEntry("Vert", 1);
+	glutAddMenuEntry("Bleu", 2);
+	glutAddMenuEntry("Rose", 3);
+	glutAddMenuEntry("Jaune", 4);
+	glutAddMenuEntry("Violet", 5);
+	glutAddMenuEntry("Orange", 6);
+	int menuTranslationWindow = glutCreateMenu(SelectParamUtil);
+	glutAddMenuEntry("X", 0);
+	glutAddMenuEntry("Y", 1);
+	int menuScalingWindow = glutCreateMenu(SelectMatriceScaling);
+	glutAddMenuEntry("X", 0);
+	glutAddMenuEntry("Y", 1);
+	int menuRotationWindow = glutCreateMenu(SelectMatriceRotation);
+	glutAddMenuEntry("X", 0);
+	glutAddMenuEntry("Y", 1);
+	glutCreateMenu(Select);
+	glutAddSubMenu("Couleur point de passage", menuBColorWindow);
+	glutAddSubMenu("Couleur De casteljau", menuDCWindow);
+	glutAddSubMenu("Couleur Spline", menuSPWindow);
+	glutAddSubMenu("Matrice Translation", menuTranslationWindow);
+	glutAddSubMenu("Matrice Scaling", menuScalingWindow);
+	glutAddSubMenu("Matrice Rotation", menuRotationWindow);
+	glutAddMenuEntry("Reset", 8);
+	glutAddMenuEntry("Quitter", 7);
+	glutAttachMenu(GLUT_RIGHT_BUTTON);
+}
 
+void Select(int selection)
+{
+	switch (selection) {
+	case 7:
+		exit(0);
+		break;
+	case 8:
+		Reset();
+		break;
+	}
+	glutPostRedisplay();
+}
+
+vector<float>* SelectColor(int selection)
+{
+	vector<float>* v = new vector < float >();
+
+	switch (selection)
+	{
+	case 0:
+		v->push_back(1.0f);
+		v->push_back(0.0f);
+		v->push_back(0.0f);
+		break;
+	case 1:
+		v->push_back(0.0f);
+		v->push_back(1.0f);
+		v->push_back(0.0f);
+		break;
+	case 2:
+		v->push_back(0.0f);
+		v->push_back(0.0f);
+		v->push_back(1.0f);
+		break;
+	case 3:
+		v->push_back(1.0f);
+		v->push_back(0.2f);
+		v->push_back(0.8f);
+		break;
+	case 4:
+		v->push_back(1.0f);
+		v->push_back(1.0f);
+		v->push_back(0.0f);
+		break;
+	case 5:
+		v->push_back(0.4f);
+		v->push_back(0.0f);
+		v->push_back(0.4f);
+		break;
+	case 6:
+		v->push_back(1.0f);
+		v->push_back(0.4f);
+		v->push_back(0.0f);
+		break;
+
+	}
+
+	return v;
+}
+
+void SelectBaseColor(int selection) {
+
+	BaseColor->clear();
+	BaseColor = SelectColor(selection);
+
+	glutPostRedisplay();
+}
+
+void SelectDeCastelColor(int selection)
+{
+	DeCastelColor->clear();
+	DeCastelColor = SelectColor(selection);
+
+	glutPostRedisplay();
+}
+
+void SelectSplineColor(int selection)
+{
+	SplineColor->clear();
+	SplineColor = SelectColor(selection);
+
+	glutPostRedisplay();
+}
+
+void SelectParamUtil(int selection)
+{
+	vec4 direction(0.0f,0.0f,0.0f,1.0f);
+	
+	int size = polygon.size();
+
+	switch (selection)
+	{
+	case 0:
+		direction.x = 10.0f;
+		for (int i = 0; i < size; i++)
+		{
+			polygon[i] = polygon[i] + direction;
+		}
+		break;
+	case 1:
+		direction.y = -10.0f;
+		for (int i = 0; i < size; i++)
+		{
+			polygon[i] = polygon[i] + direction;
+		}
+		break;
+	}
+
+	glutPostRedisplay();
+}
+
+void SelectMatriceScaling(int selection) {
+	vec4 direction(0.0f, 0.0f, 0.0f, 1.0f);
+
+	int size = polygon.size();
+
+	switch (selection)
+	{
+	case 0:
+		direction.x = 2.0f;
+		direction.y = 2.0f;
+		for (int i = 0; i < size; i++)
+		{
+			polygon[i] = polygon[i] * direction;
+		}
+		break;
+	case 1:
+		direction.x = 0.5f;
+		direction.y = 0.5f;
+		for (int i = 0; i < size; i++)
+		{
+			polygon[i] = polygon[i] + direction;
+		}
+		break;
+	}
+
+	glutPostRedisplay();
+}
+
+void SelectMatriceRotation(int selection)
+{
+	vec4 direction(35.0f, 0.0f, 0.0f, 1.0f);
+
+	int size = polygon.size();
+
+	switch (selection)
+	{
+	case 0:
+		for (int i = 0; i < size; i++)
+		{
+			polygon[i] = polygon[i] - direction;
+		}
+		break;
+	case 1:
+		direction.x = -35.0f;
+		for (int i = 0; i < size; i++)
+		{
+			polygon[i] = polygon[i] - direction;
+		}
+		break;
+	}
+
+	glutPostRedisplay();
+}
 #pragma endregion MENU
 
 
 vector<point> DeCasteljau(vector<point> polygon)
 {
 	vector<point> _bezier;
-	float p = 25;
+	float p = pasAdaptif;
 
 	point _point;
 	for (int k = 0; k <= p; ++k) {
@@ -302,4 +651,19 @@ vector<point> Spline(vector<point> polygon)
 	}
 
 	return _spline;
+}
+
+void AssignColor()
+{
+	BaseColor->push_back(0.0f);
+	BaseColor->push_back(0.0f);
+	BaseColor->push_back(1.0f);
+
+	DeCastelColor->push_back(1.0f);
+	DeCastelColor->push_back(0.0f);
+	DeCastelColor->push_back(0.0f);
+
+	SplineColor->push_back(0.0f);
+	SplineColor->push_back(1.0f);
+	SplineColor->push_back(0.0f);
 }
