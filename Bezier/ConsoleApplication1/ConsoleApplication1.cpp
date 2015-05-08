@@ -22,52 +22,6 @@ using namespace std;
 
 #define PI 3.14159265
 
-// Window variables
-int windowWidth = 500;
-int windowHeight = 500;
-
-
-// States variables
-int pickedPoint = -1;
-float pasAdaptif = 25;
-
-
-// Polygons variables
-vector<point> polygon;
-
-
-// Prototypes
-void Display(void);
-void DrawPolygonWire(vector<point> polygon, float r, float g, float b);
-void Keyboard(unsigned char touche, int x, int y);
-void Mouse(int bouton, int etat, int x, int y); 
-void MouseMove(int x, int y);
-void AddMenu();
-void AssignColor();
-void Select(int selection);
-
-vector<float>* SelectColor(int selection);
-
-void SelectBaseColor(int selection);
-void SelectDeCastelColor(int selection);
-void SelectSplineColor(int selection);
-void SelectParamUtil(int selection);
-void SelectMatriceScaling(int selection);
-void SelectMatriceRotation(int selection);
-
-void Reset();
-
-vector<point> DeCasteljau(vector<point>);
-point GetBezierPoint(float f, vector<point> polygon);
-vector<point> Spline(vector<point> polygon);
-
-vector<float>* BaseColor = new vector<float>;
-vector<float>* DeCastelColor = new vector<float>;
-vector<float>* SplineColor = new vector<float>;
-#pragma endregion DECLARATIONS
-
-#pragma region POINT_VEC_MAT
-
 // Struct
 struct point
 {
@@ -88,6 +42,7 @@ struct vec4
 	{
 	}
 };
+
 inline point operator+ (const point& a, const point& b) {
 	point p;
 	p.x = a.x + b.x;
@@ -197,6 +152,63 @@ inline point operator*(const point& a, const vec4& d) {
 	return p;
 }
 
+// Polygons variables
+vector<point> polygon;
+
+// Window variables
+int windowWidth = 500;
+int windowHeight = 500;
+
+//Matrice rotation
+bool rotated = false;
+vec4 directionRotation(0.0f, 0.0f, 0.0f, 1.0f);
+vector<point>* rotationPointsOrigin;
+
+float _xMin = windowWidth;
+float _yMin = windowHeight;
+
+
+
+
+// States variables
+int pickedPoint = -1;
+float pasAdaptif = 25;
+
+
+// Prototypes
+void Display(void);
+void DrawPolygonWire(vector<point> polygon, float r, float g, float b);
+void Keyboard(unsigned char touche, int x, int y);
+void Mouse(int bouton, int etat, int x, int y); 
+void MouseMove(int x, int y);
+void AddMenu();
+void AssignColor();
+void Select(int selection);
+
+vector<float>* SelectColor(int selection);
+
+void SelectBaseColor(int selection);
+void SelectDeCastelColor(int selection);
+void SelectSplineColor(int selection);
+void SelectParamUtil(int selection);
+void SelectMatriceScaling(int selection);
+void SelectMatriceRotation(int selection);
+
+void Reset();
+
+vector<point> DeCasteljau(vector<point>);
+point GetBezierPoint(float f, vector<point> polygon);
+vector<point> Spline(vector<point> polygon);
+
+vector<float>* BaseColor = new vector<float>;
+vector<float>* DeCastelColor = new vector<float>;
+vector<float>* SplineColor = new vector<float>;
+#pragma endregion DECLARATIONS
+
+#pragma region POINT_VEC_MAT
+
+
+
 #pragma endregion POINT_VEC_MAT
 
 #pragma region MAIN
@@ -283,6 +295,7 @@ void Mouse(int button, int state, int x, int y)
 {
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
 	{
+
 		polygon.push_back(point(x, y));
 
 		glutPostRedisplay();
@@ -513,6 +526,30 @@ void SelectMatriceScaling(int selection) {
 
 	int size = polygon.size();
 
+	vector<point> pointsMin_Max;
+	for (int i = 0; i < size; i++)
+	{
+		if (!rotated)
+		{
+			if (_xMin > polygon.at(i).x)
+			{
+				_xMin = polygon.at(i).x;
+			}
+			if (_yMin > polygon.at(i).y)
+			{
+				_yMin = polygon.at(i).y;
+			}
+		}
+		
+		pointsMin_Max.push_back(polygon.at(i));
+	}
+
+	for (int i = 0; i < size; i++)
+	{
+		pointsMin_Max.at(i).x -= _xMin;
+		pointsMin_Max.at(i).y -= _yMin;
+	}
+
 	switch (selection)
 	{
 	case 0:
@@ -520,7 +557,7 @@ void SelectMatriceScaling(int selection) {
 		direction.y = 2.0f;
 		for (int i = 0; i < size; i++)
 		{
-			polygon[i] = polygon[i] * direction;
+			pointsMin_Max[i] = pointsMin_Max[i] * direction;
 		}
 		break;
 	case 1:
@@ -528,36 +565,84 @@ void SelectMatriceScaling(int selection) {
 		direction.y = 0.5f;
 		for (int i = 0; i < size; i++)
 		{
-			polygon[i] = polygon[i] + direction;
+			pointsMin_Max[i] = pointsMin_Max[i] * direction;
 		}
 		break;
 	}
+
+	polygon.clear();
+
+	for (int i = 0; i < size; i++)
+	{
+		pointsMin_Max.at(i).x += _xMin;
+		pointsMin_Max.at(i).y += _yMin;
+		polygon.push_back(pointsMin_Max.at(i));
+	}
+
+	rotated = true;
 
 	glutPostRedisplay();
 }
 
 void SelectMatriceRotation(int selection)
 {
-	vec4 direction(35.0f, 0.0f, 0.0f, 1.0f);
+	static vec4 directionRotation(0.0f, 0.0f, 0.0f, 1.0f);
 
 	int size = polygon.size();
 
+	
+
+	vector<point> pointsMin_Max;
+	for (int i = 0; i < size; i++)
+	{
+		if (!rotated)
+		{
+			if (_xMin > polygon.at(i).x)
+			{
+				_xMin = polygon.at(i).x;
+			}
+			if (_yMin > polygon.at(i).y)
+			{
+				_yMin = polygon.at(i).y;
+			}
+		}
+		
+		pointsMin_Max.push_back(polygon.at(i));
+	}
+
+	for (int i = 0; i < size; i++)
+	{
+		pointsMin_Max.at(i).x -= _xMin;
+		pointsMin_Max.at(i).y -= _yMin;
+	}
+	
 	switch (selection)
 	{
 	case 0:
+		directionRotation.x = 35.0f;
 		for (int i = 0; i < size; i++)
 		{
-			polygon[i] = polygon[i] - direction;
+			pointsMin_Max[i] = pointsMin_Max[i] - directionRotation;
 		}
 		break;
 	case 1:
-		direction.x = -35.0f;
+		directionRotation.x = -35.0f;
 		for (int i = 0; i < size; i++)
 		{
-			polygon[i] = polygon[i] - direction;
+			pointsMin_Max[i] = pointsMin_Max[i] - directionRotation;
 		}
 		break;
 	}
+
+	polygon.clear();
+
+	for (int i = 0; i < size; i++)
+	{
+		pointsMin_Max.at(i).x += _xMin;
+		pointsMin_Max.at(i).y += _yMin;
+		polygon.push_back(pointsMin_Max.at(i));
+	}
+	rotated = true;
 
 	glutPostRedisplay();
 }
