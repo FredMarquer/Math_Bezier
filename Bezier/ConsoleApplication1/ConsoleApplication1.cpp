@@ -18,6 +18,7 @@
 #include <list>
 #include <algorithm>
 #include "Matrix4.h"
+
 using namespace std;
 
 #define PI 3.14159265
@@ -193,6 +194,7 @@ void SelectSplineColor(int selection);
 void SelectParamUtil(int selection);
 void SelectMatriceScaling(int selection);
 void SelectMatriceRotation(int selection);
+void AjouterPosition();
 
 void Reset();
 
@@ -405,6 +407,7 @@ void AddMenu()
 	glutAddSubMenu("Matrice Translation", menuTranslationWindow);
 	glutAddSubMenu("Matrice Scaling", menuScalingWindow);
 	glutAddSubMenu("Matrice Rotation", menuRotationWindow);
+	glutAddMenuEntry("Ajouter Point", 9);
 	glutAddMenuEntry("Reset", 8);
 	glutAddMenuEntry("Quitter", 7);
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
@@ -418,6 +421,9 @@ void Select(int selection)
 		break;
 	case 8:
 		Reset();
+		break;
+	case 9:
+		AjouterPosition();
 		break;
 	}
 	glutPostRedisplay();
@@ -503,14 +509,16 @@ void SelectParamUtil(int selection)
 	switch (selection)
 	{
 	case 0:
-		direction.x = 10.0f;
+		printf("Entrer le facteur x : ");
+		scanf_s("%f", &(direction.x));
 		for (int i = 0; i < size; i++)
 		{
 			polygon[i] = polygon[i] + direction;
 		}
 		break;
 	case 1:
-		direction.y = -10.0f;
+		printf("Entrer le facteur y : ");
+		scanf_s("%f", &(direction.y));
 		for (int i = 0; i < size; i++)
 		{
 			polygon[i] = polygon[i] + direction;
@@ -553,16 +561,16 @@ void SelectMatriceScaling(int selection) {
 	switch (selection)
 	{
 	case 0:
-		direction.x = 2.0f;
-		direction.y = 2.0f;
+		printf("Entrer le facteur x : ");
+		scanf_s("%f", &(direction.x));
 		for (int i = 0; i < size; i++)
 		{
 			pointsMin_Max[i] = pointsMin_Max[i] * direction;
 		}
 		break;
 	case 1:
-		direction.x = 0.5f;
-		direction.y = 0.5f;
+		printf("Entrer le facteur y : ");
+		scanf_s("%f", &(direction.y));
 		for (int i = 0; i < size; i++)
 		{
 			pointsMin_Max[i] = pointsMin_Max[i] * direction;
@@ -619,14 +627,16 @@ void SelectMatriceRotation(int selection)
 	switch (selection)
 	{
 	case 0:
-		directionRotation.x = 35.0f;
+		printf("Entrer le facteur x : ");
+		scanf_s("%f", &(directionRotation.x));
 		for (int i = 0; i < size; i++)
 		{
 			pointsMin_Max[i] = pointsMin_Max[i] - directionRotation;
 		}
 		break;
 	case 1:
-		directionRotation.x = -35.0f;
+		printf("Entrer le facteur x : ");
+		scanf_s("%f", &(directionRotation.x));
 		for (int i = 0; i < size; i++)
 		{
 			pointsMin_Max[i] = pointsMin_Max[i] - directionRotation;
@@ -643,6 +653,21 @@ void SelectMatriceRotation(int selection)
 		polygon.push_back(pointsMin_Max.at(i));
 	}
 	rotated = true;
+
+	glutPostRedisplay();
+}
+
+void AjouterPosition()
+{
+	float _x;
+	float _y;
+
+	printf("Entrer le facteur x : ");
+	scanf_s("%f", &(_x));
+	printf("Entrer le facteur y : ");
+	scanf_s("%f", &(_y));
+
+	polygon.push_back(point(_x, _y));
 
 	glutPostRedisplay();
 }
