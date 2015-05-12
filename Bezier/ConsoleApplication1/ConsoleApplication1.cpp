@@ -35,6 +35,18 @@ struct point
 		x = a.x;
 		y = a.y;
 	}
+	point operator- () {
+		return point(-x, -y);
+	}
+	float magnitude()
+	{
+		return sqrt(x*x + y*y);
+	}
+	point normalised()
+	{
+		float m = magnitude();
+		return point(x/m, y/m);
+	}
 };
 inline point operator+ (const point& a, const point& b) {
 	point p;
@@ -169,17 +181,27 @@ inline point operator*(const point& a, const vec4& d) {
 
 vector<vector<vector<point>>> curves;
 
-
-struct C0
+class Raccordement
 {
+public:
 	int bezierA, bezierB;
-	point lastPosition;
+	virtual void Init() 
+	{
+		cout << "Init r" << endl;
+	}
+	virtual void Update()
+	{
+		cout << "Init r" << endl;
+	}
+};
 
-	C0() {}
+class C0 : public Raccordement
+{
+public:
+	point lastPosition;
 
 	void Init()
 	{
-		cout << "Init c0" << endl;
 		int lastA = curves[0][bezierA].size() - 1;
 		lastPosition = (curves[0][bezierA][lastA] + curves[0][bezierB][0]) * 0.5f;
 		curves[0][bezierA][lastA] = lastPosition;
@@ -188,20 +210,93 @@ struct C0
 
 	void Update()
 	{
-		cout << "Update c0" << endl;
 		int lastA = curves[0][bezierA].size() - 1;
 		if (curves[0][bezierA][lastA] != lastPosition)
 			lastPosition = curves[0][bezierA][lastA];
 		else if (curves[0][bezierB][0] != lastPosition)
 			lastPosition = curves[0][bezierB][0];
-
 		curves[0][bezierA][lastA] = lastPosition;
 		curves[0][bezierB][0] = lastPosition;
 	}
 };
 
+class C1 : public Raccordement
+{
+public:
+	point lastPosition;
+	point lastPositionControleADelta;
+	point lastPositionControleBDelta;
 
-vector<C0> C0s;
+	void Init()
+	{
+		int lastA = curves[0][bezierA].size() - 1;
+		lastPosition = (curves[0][bezierA][lastA] + curves[0][bezierB][0]) * 0.5f;
+		curves[0][bezierA][lastA] = lastPosition;
+		curves[0][bezierB][0] = lastPosition;
+		lastPositionControleADelta = curves[0][bezierA][lastA - 1] - curves[0][bezierA][lastA];
+		lastPositionControleBDelta = curves[0][bezierB][1] - curves[0][bezierB][0];
+		float r1 = lastPositionControleADelta.magnitude();
+		float r2 = lastPositionControleBDelta.magnitude();
+		point direction = ((curves[0][bezierA][lastA - 1] - curves[0][bezierA][lastA]) + -(curves[0][bezierB][1] - curves[0][bezierB][0])) * 0.5f;
+		direction = direction.normalised();
+		lastPositionControleADelta = direction * r1;
+		lastPositionControleBDelta = -direction * r2;
+		curves[0][bezierA][lastA - 1] = curves[0][bezierA][lastA] + lastPositionControleADelta;
+		curves[0][bezierB][1] = curves[0][bezierB][0] + lastPositionControleBDelta;
+	}
+
+	void Update()
+	{
+		int lastA = curves[0][bezierA].size() - 1;
+		if (curves[0][bezierA][lastA] != lastPosition || curves[0][bezierB][0] != lastPosition) {
+			if (curves[0][bezierA][lastA] != lastPosition)
+				lastPosition = curves[0][bezierA][lastA];
+			else if (curves[0][bezierB][0] != lastPosition)
+				lastPosition = curves[0][bezierB][0];
+			curves[0][bezierA][lastA] = lastPosition;
+			curves[0][bezierB][0] = lastPosition;
+			curves[0][bezierA][lastA - 1] = curves[0][bezierA][lastA] + lastPositionControleADelta;
+			curves[0][bezierB][1] = curves[0][bezierB][0] + lastPositionControleBDelta;
+		}
+		else if ((curves[0][bezierA][lastA - 1] - curves[0][bezierA][lastA]) != lastPositionControleADelta) {
+			float r2 = lastPositionControleBDelta.magnitude();
+			lastPositionControleADelta = curves[0][bezierA][lastA - 1] - curves[0][bezierA][lastA];
+			lastPositionControleBDelta = -lastPositionControleADelta.normalised() * r2;
+			curves[0][bezierB][1] = curves[0][bezierB][0] + lastPositionControleBDelta;
+		}
+		else if ((curves[0][bezierB][1] - curves[0][bezierB][0]) != lastPositionControleBDelta) {
+			float r1 = lastPositionControleADelta.magnitude();
+			lastPositionControleBDelta = curves[0][bezierB][1] - curves[0][bezierB][0];
+			lastPositionControleADelta = -lastPositionControleBDelta.normalised() * r1;
+			curves[0][bezierA][lastA - 1] = curves[0][bezierA][lastA] + lastPositionControleADelta;
+		}
+	}
+};
+
+class C2 : public Raccordement
+{
+public:
+	point lastPosition;
+
+	void Init()
+	{
+		
+	}
+
+	void Update()
+	{
+		
+	}
+};
+
+
+C0 C0s[20];
+int nbC0 = 0;
+C1 C1s[20];
+int nbC1 = 0;
+C2 C2s[20];
+int nbC2 = 0;
+vector<Raccordement*> raccordements;
 
 
 // Polygons variables
@@ -212,8 +307,8 @@ vector<float>* DeCastelColor = new vector<float>;
 vector<float>* SplineColor = new vector<float>;
 
 // Window variables
-int windowWidth = 500;
-int windowHeight = 500;
+int windowWidth = 800;
+int windowHeight = 800;
 
 // States variables
 int pickedCurveType = -1;
@@ -221,7 +316,7 @@ int pickedCurve = -1;
 int pickedPoint = -1;
 bool pasAdaptatif = false;
 float pas = 10;
-C0 newC0;
+Raccordement* newRaccordement;
 bool raccordementStep = false;
 
 // Prototypes
@@ -252,7 +347,7 @@ point BaryCentre(vector<point> points);
 
 vector<point> DeCasteljau(vector<point>);
 point GetBezierPoint(float f, vector<point> polygon);
-float Magnitude(point a, point b);
+float Distance(point a, point b);
 vector<point> Spline(vector<point> polygon);
 
 #pragma endregion DECLARATIONS
@@ -303,9 +398,9 @@ int main(int argc, char **argv)
 
 void Display()
 {
-	for (int i = 0; i < C0s.size(); ++i)
+	for (int i = 0; i < raccordements.size(); ++i)
 	{
-		C0s[i].Update();
+		raccordements[i]->Update();
 	}
 
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -416,13 +511,13 @@ void Mouse(int button, int state, int x, int y)
 				}
 				if (pickedCurve != -1) {
 					if (!raccordementStep) {
-						newC0.bezierA = pickedCurve;
+						newRaccordement->bezierA = pickedCurve;
 						raccordementStep = true;
 					}
 					else {
-						newC0.bezierB = pickedCurve;
-						newC0.Init();
-						C0s.push_back(newC0);
+						newRaccordement->bezierB = pickedCurve;
+						newRaccordement->Init();
+						raccordements.push_back(newRaccordement);
 						mode = 0;
 					}
 				}
@@ -566,7 +661,7 @@ void AddMenu()
 	int menuRaccordement = glutCreateMenu(SelectRaccordement);
 	glutAddMenuEntry("C0", 0);
 	glutAddMenuEntry("C1", 1);
-	glutAddMenuEntry("C2", 2);
+	//glutAddMenuEntry("C2", 2);
 
 	glutCreateMenu(SelectMain);
 	glutAddSubMenu("Courbes", menuCourbes);
@@ -708,15 +803,15 @@ void SelectRaccordement(int selection)
 	ClearMode();
 	mode = 5;
 	raccordementStep = false;
-	switch (selection) {
+	switch (selection ) {
 	case 0:
-		newC0 = C0();
+		newRaccordement = &C0s[nbC0++];
 		break;
 	case 1:
-		
+		newRaccordement = &C1s[nbC1++];
 		break;
 	case 2:
-		
+		newRaccordement = &C2s[nbC2++];
 		break;
 	}
 }
@@ -830,7 +925,7 @@ vector<point> DeCasteljau(vector<point> polygon)
 	if (pasAdaptatif) {
 		float f = 0;
 		for (int i = 0; i < polygon.size() - 1; ++i) {
-			f += Magnitude(polygon[i], polygon[i+1]);
+			f += Distance(polygon[i], polygon[i + 1]);
 		}
 		p = f / 20;
 	}
@@ -870,7 +965,7 @@ point GetBezierPoint(float t, vector<point> polygon)
 }
 
 
-float Magnitude(point a, point b)
+float Distance(point a, point b)
 {
 	point p = a - b;
 	return sqrt(p.x*p.x + p.y*p.y);
