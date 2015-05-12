@@ -22,6 +22,7 @@ using namespace std;
 
 #define PI 3.14159265
 
+
 // Struct
 struct point
 {
@@ -29,8 +30,12 @@ struct point
 
 	point() {};
 	point(float _x, float _y) : x(_x), y(_y) {}
-};
 
+	void operator= (const point& a) {
+		x = a.x;
+		y = a.y;
+	}
+};
 inline point operator+ (const point& a, const point& b) {
 	point p;
 	p.x = a.x + b.x;
@@ -50,6 +55,13 @@ inline point operator- (const point& a, const point& b) {
 	p.y = a.y - b.y;
 	return p;
 }
+inline bool operator== (const point& a, const point& b) {
+	return (a.x == b.x && a.y == b.y);
+}
+inline bool operator!= (const point& a, const point& b) {
+	return !(a == b);
+}
+
 
 
 struct vec4
@@ -59,7 +71,6 @@ struct vec4
 	vec4(){};
 	vec4(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w) {}
 };
-
 inline vec4 operator *(const Matrix4& m, const vec4& d) {
 	vec4 result;
 
@@ -155,10 +166,46 @@ inline point operator*(const point& a, const vec4& d) {
 	return p;
 }
 
-// Polygons variables
-int mode = 0;
 
 vector<vector<vector<point>>> curves;
+
+
+struct C0
+{
+	int bezierA, bezierB;
+	point lastPosition;
+
+	C0() {}
+
+	void Init()
+	{
+		cout << "Init c0" << endl;
+		int lastA = curves[0][bezierA].size() - 1;
+		lastPosition = (curves[0][bezierA][lastA] + curves[0][bezierB][0]) * 0.5f;
+		curves[0][bezierA][lastA] = lastPosition;
+		curves[0][bezierB][0] = lastPosition;
+	}
+
+	void Update()
+	{
+		cout << "Update c0" << endl;
+		int lastA = curves[0][bezierA].size() - 1;
+		if (curves[0][bezierA][lastA] != lastPosition)
+			lastPosition = curves[0][bezierA][lastA];
+		else if (curves[0][bezierB][0] != lastPosition)
+			lastPosition = curves[0][bezierB][0];
+
+		curves[0][bezierA][lastA] = lastPosition;
+		curves[0][bezierB][0] = lastPosition;
+	}
+};
+
+
+vector<C0> C0s;
+
+
+// Polygons variables
+int mode = 0;
 
 vector<float>* BaseColor = new vector<float>;
 vector<float>* DeCastelColor = new vector<float>;
@@ -168,19 +215,14 @@ vector<float>* SplineColor = new vector<float>;
 int windowWidth = 500;
 int windowHeight = 500;
 
-//Matrice rotation
-vec4 directionRotation(0.0f, 0.0f, 0.0f, 1.0f);
-vector<point>* rotationPointsOrigin;
-
-float _xMin = windowWidth;
-float _yMin = windowHeight;
-
 // States variables
 int pickedCurveType = -1;
 int pickedCurve = -1;
 int pickedPoint = -1;
 bool pasAdaptatif = false;
 float pas = 10;
+C0 newC0;
+bool raccordementStep = false;
 
 // Prototypes
 void InitVariables();
@@ -198,6 +240,7 @@ void SelectTranformation(int selection);
 void SelectBaseColor(int selection);
 void SelectDeCastelColor(int selection);
 void SelectSplineColor(int selection);
+void SelectRaccordement(int selection);
 void ClearMode();
 
 vector<float>* SelectColor(int selection);
@@ -260,6 +303,11 @@ int main(int argc, char **argv)
 
 void Display()
 {
+	for (int i = 0; i < C0s.size(); ++i)
+	{
+		C0s[i].Update();
+	}
+
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	for (int i = 0; i < curves[0].size(); ++i)
@@ -358,7 +406,26 @@ void Mouse(int button, int state, int x, int y)
 				}
 				break;
 			case 5:
-				// raccordement
+				pickedCurve = -1;
+				for (int j = 0; j < curves[0].size(); ++j) {
+					for (int k = 0; k < curves[0][j].size(); ++k) {
+						if (curves[0][j][k].x - x < 15 && curves[0][j][k].x - x > -15 && curves[0][j][k].y - y < 15 && curves[0][j][k].y - y > -15) {
+							pickedCurve = j;
+						}
+					}
+				}
+				if (pickedCurve != -1) {
+					if (!raccordementStep) {
+						newC0.bezierA = pickedCurve;
+						raccordementStep = true;
+					}
+					else {
+						newC0.bezierB = pickedCurve;
+						newC0.Init();
+						C0s.push_back(newC0);
+						mode = 0;
+					}
+				}
 				break;
 			case 6:
 				for (int i = 0; i < curves.size(); ++i) {
@@ -496,11 +563,16 @@ void AddMenu()
 	glutAddSubMenu("Beziers", menuColorBeziers);
 	glutAddSubMenu("Splines", menuColorSplines);
 
+	int menuRaccordement = glutCreateMenu(SelectRaccordement);
+	glutAddMenuEntry("C0", 0);
+	glutAddMenuEntry("C1", 1);
+	glutAddMenuEntry("C2", 2);
+
 	glutCreateMenu(SelectMain);
 	glutAddSubMenu("Courbes", menuCourbes);
 	glutAddSubMenu("Transformations", menuTransformations);
 	glutAddMenuEntry("Move Points", 3);
-	//glutAddMenuEntry("Raccordement", 4);
+	glutAddSubMenu("Raccordement", menuRaccordement);
 	glutAddSubMenu("Couleurs", menuColor);
 	glutAddMenuEntry("Reset", 8);
 	glutAddMenuEntry("Quitter", 7);
@@ -515,9 +587,6 @@ void SelectMain(int selection)
 	switch (selection) {
 	case 3:
 		mode = 4;
-		break;
-	case 4:
-		
 		break;
 	case 7:
 		exit(0);
@@ -632,6 +701,24 @@ void SelectSplineColor(int selection)
 	SplineColor->clear();
 	SplineColor = SelectColor(selection);
 	glutPostRedisplay();
+}
+
+void SelectRaccordement(int selection)
+{
+	ClearMode();
+	mode = 5;
+	raccordementStep = false;
+	switch (selection) {
+	case 0:
+		newC0 = C0();
+		break;
+	case 1:
+		
+		break;
+	case 2:
+		
+		break;
+	}
 }
 
 void Translation(int curveType, int curve)
@@ -850,6 +937,7 @@ void InitVariables()
 	pickedPoint = -1;
 	pasAdaptatif = false;
 	pas = 10;
+	raccordementStep = false;
 
 	curves.clear();
 	curves.push_back(vector<vector<point>>());
