@@ -1,7 +1,6 @@
 ﻿
 
 
-
 #pragma region DECLARATIONS
 
 #include <windows.h>
@@ -111,10 +110,10 @@ inline point operator-(const point& a, const vec4& d) {
 	sd.z = 0.0f;
 	sd.w = 1.0f;
 
-	m.m00 = cosf(d.x * PI / 180.0);
-	m.m01 = -sinf(d.x * PI / 180.0);
-	m.m10 = sinf(d.x * PI / 180.0);
-	m.m11 = cosf(d.x * PI / 180.0);
+	m.m00 = cosf(d.z * PI / 180.0);
+	m.m01 = -sinf(d.z * PI / 180.0);
+	m.m10 = sinf(d.z * PI / 180.0);
+	m.m11 = cosf(d.z * PI / 180.0);
 
 	vec4 result;
 	result = m * sd;
@@ -206,6 +205,7 @@ void Translation(int curveType, int curve);
 void Translation(int curveType, int curve, float x, float y);
 void Rotation(int curveType, int curve);
 void Scaling(int curveType, int curve);
+point BaryCentre(vector<point> points);
 
 vector<point> DeCasteljau(vector<point>);
 point GetBezierPoint(float f, vector<point> polygon);
@@ -657,86 +657,52 @@ void Translation(int curveType, int curve, float x, float y)
 
 void Rotation(int curveType, int curve)
 {
-	static vec4 directionRotation(0.0f, 0.0f, 0.0f, 1.0f);
-
-	int size = curves[curveType][curve].size();
-
-	vector<point> pointsMin_Max;
-	for (int i = 0; i < size; i++)
-	{
-		if (_xMin > curves[curveType][curve][i].x)
-			_xMin = curves[curveType][curve][i].x;
-		if (_yMin > curves[curveType][curve][i].y)
-			_yMin = curves[curveType][curve][i].y;
-
-		pointsMin_Max.push_back(curves[curveType][curve][i]);
-	}
-
-	for (int i = 0; i < size; i++)
-	{
-		pointsMin_Max[i].x -= _xMin;
-		pointsMin_Max[i].y -= _yMin;
-	}
-
+	static vec4 direction(0.0f, 0.0f, 0.0f, 1.0f);
 	printf("Entrer le facteur z : ");
-	scanf_s("%f", &(directionRotation.x));
-	for (int i = 0; i < size; i++)
-	{
-		pointsMin_Max[i] = pointsMin_Max[i] - directionRotation;
-	}
+	scanf_s("%f", &(direction.z));
 
-	curves[curveType][curve].clear();
-
-	for (int i = 0; i < size; i++)
+	point bary = BaryCentre(curves[curveType][curve]);
+	Translation(curveType, curve, -bary.x, -bary.y);
+	for (int i = 0; i < curves[curveType][curve].size(); i++)
 	{
-		pointsMin_Max[i].x += _xMin;
-		pointsMin_Max[i].y += _yMin;
-		curves[curveType][curve].push_back(pointsMin_Max.at(i));
+		curves[curveType][curve][i] = curves[curveType][curve][i] - direction;
 	}
+	Translation(curveType, curve, bary.x, bary.y);
 
 	glutPostRedisplay();
 }
 
-void Scaling(int curveType, int curve) {
-	vec4 direction(0.0f, 0.0f, 0.0f, 1.0f);
-	int size = curves[curveType][curve].size();
-
-	vector<point> pointsMin_Max;
-	for (int i = 0; i < size; i++)
-	{
-		if (_xMin > curves[curveType][curve][i].x)
-			_xMin = curves[curveType][curve][i].x;
-		if (_yMin > curves[curveType][curve][i].y)
-			_yMin = curves[curveType][curve][i].y;
-		
-		pointsMin_Max.push_back(curves[curveType][curve][i]);
-	}
-
-	for (int i = 0; i < size; i++)
-	{
-		pointsMin_Max[i].x -= _xMin;
-		pointsMin_Max[i].y -= _yMin;
-	}
-
+void Scaling(int curveType, int curve)
+{
+	static vec4 direction(0.0f, 0.0f, 0.0f, 1.0f);
 	printf("Entrer le facteur x : ");
 	scanf_s("%f", &(direction.x));
 	printf("Entrer le facteur y : ");
 	scanf_s("%f", &(direction.y));
-	for (int i = 0; i < size; i++)
-	{
-		pointsMin_Max[i] = pointsMin_Max[i] * direction;
-	}
 
-	curves[curveType][curve].clear();
-
-	for (int i = 0; i < size; i++)
+	point bary = BaryCentre(curves[curveType][curve]);
+	Translation(curveType, curve, -bary.x, -bary.y);
+	for (int i = 0; i < curves[curveType][curve].size(); i++)
 	{
-		pointsMin_Max[i].x += _xMin;
-		pointsMin_Max[i].y += _yMin;
-		curves[curveType][curve].push_back(pointsMin_Max.at(i));
+		curves[curveType][curve][i] = curves[curveType][curve][i] * direction;
 	}
+	Translation(curveType, curve, bary.x, bary.y);
 
 	glutPostRedisplay();
+}
+
+
+point BaryCentre(vector<point> points)
+{
+	float x = 0, y = 0;
+	for (int i = 0; i < points.size(); ++i)
+	{
+		x += points[i].x;
+		y += points[i].y;
+	}
+	x /= points.size();
+	y /= points.size();
+	return point(x, y);
 }
 
 
