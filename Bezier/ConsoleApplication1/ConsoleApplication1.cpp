@@ -28,20 +28,8 @@ struct point
 {
 	float x, y;
 
-	point(){};
-	point(float _x, float _y) : x(_x), y(_y)
-	{
-	}
-};
-
-struct vec4
-{
-	float x, y, z, w;
-
-	vec4(){};
-	vec4(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w)
-	{
-	}
+	point() {};
+	point(float _x, float _y) : x(_x), y(_y) {}
 };
 
 inline point operator+ (const point& a, const point& b) {
@@ -50,12 +38,28 @@ inline point operator+ (const point& a, const point& b) {
 	p.y = a.y + b.y;
 	return p;
 }
+
 inline point operator* (const point& a, const float k) {
 	point p;
 	p.x = a.x * k;
 	p.y = a.y * k;
 	return p;
 }
+inline point operator- (const point& a, const point& b) {
+	point p;
+	p.x = a.x - b.x;
+	p.y = a.y - b.y;
+	return p;
+}
+
+
+struct vec4
+{
+	float x, y, z, w;
+
+	vec4(){};
+	vec4(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w) {}
+};
 
 inline vec4 operator *(const Matrix4& m, const vec4& d) {
 	vec4 result;
@@ -137,7 +141,6 @@ inline point operator*(const point& a, const vec4& d) {
 	sd.z = 0.0f;
 	sd.w = 1.0f;
 
-
 	m.m00 = d.x;
 	m.m11 = d.y;
 	m.m22 = d.z;
@@ -154,102 +157,95 @@ inline point operator*(const point& a, const vec4& d) {
 }
 
 // Polygons variables
-vector<point> polygon;
+int mode = 0;
+
+vector<vector<vector<point>>> curves;
+
+vector<float>* BaseColor = new vector<float>;
+vector<float>* DeCastelColor = new vector<float>;
+vector<float>* SplineColor = new vector<float>;
 
 // Window variables
 int windowWidth = 500;
 int windowHeight = 500;
 
 //Matrice rotation
-bool rotated = false;
 vec4 directionRotation(0.0f, 0.0f, 0.0f, 1.0f);
 vector<point>* rotationPointsOrigin;
 
 float _xMin = windowWidth;
 float _yMin = windowHeight;
 
-
-
-
 // States variables
+int pickedCurveType = -1;
+int pickedCurve = -1;
 int pickedPoint = -1;
-float pasAdaptif = 25;
-
+bool pasAdaptatif = false;
+float pas = 10;
 
 // Prototypes
+void InitVariables();
 void Display(void);
 void DrawPolygonWire(vector<point> polygon, float r, float g, float b);
 void Keyboard(unsigned char touche, int x, int y);
 void Mouse(int bouton, int etat, int x, int y); 
 void MouseMove(int x, int y);
 void AddMenu();
-void AssignColor();
-void Select(int selection);
 
-vector<float>* SelectColor(int selection);
-
+void SelectVoid(int i);
+void SelectMain(int selection);
+void SelectCurves(int selection);
+void SelectTranformation(int selection);
 void SelectBaseColor(int selection);
 void SelectDeCastelColor(int selection);
 void SelectSplineColor(int selection);
-void SelectParamUtil(int selection);
-void SelectMatriceScaling(int selection);
-void SelectMatriceRotation(int selection);
-void AjouterPosition();
+void ClearMode();
 
-void Reset();
+vector<float>* SelectColor(int selection);
+void Translation(int curveType, int curve);
+void Translation(int curveType, int curve, float x, float y);
+void Rotation(int curveType, int curve);
+void Scaling(int curveType, int curve);
 
 vector<point> DeCasteljau(vector<point>);
 point GetBezierPoint(float f, vector<point> polygon);
+float Magnitude(point a, point b);
 vector<point> Spline(vector<point> polygon);
 
-vector<float>* BaseColor = new vector<float>;
-vector<float>* DeCastelColor = new vector<float>;
-vector<float>* SplineColor = new vector<float>;
 #pragma endregion DECLARATIONS
 
-#pragma region POINT_VEC_MAT
 
-
-
-#pragma endregion POINT_VEC_MAT
 
 #pragma region MAIN
 
 
 int main(int argc, char **argv)
 {  
-	// Initialisation de glut et creation de la fenetre 
-	glutInit(&argc,argv);                       // Initialisation
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH); // mode d'affichage RGB, et test prafondeur
-	glutInitWindowSize(windowWidth, windowHeight);                // dimension fenêtre
-	glutInitWindowPosition(100, 100);           // position coin haut gauche
-	glutCreateWindow("A vous de jouer!!!");  // nom
-
-	// Repère 2D délimitant les abscisses et les ordonnées
+	// Init glut
+	glutInit(&argc,argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitWindowSize(windowWidth, windowHeight);
+	glutInitWindowPosition(100, 100);
+	glutCreateWindow("Bezier/Spline"); 
 	gluOrtho2D(0, windowWidth, windowHeight, 0);
 
-	// Initialisation d'OpenGL
+	// Init GL
 	glClearColor(0.0, 0.0, 0.0, 1.0);
-	glPointSize(1.0);               // taille d'un point: 1px
+	glPointSize(5.0);
 
-	// Enregistrement des fonctions de rappel
-	// => initialisation des fonctions callback appelées par glut 
-	//glutIdleFunc(afficher);
+	// Init glut functions
 	glutDisplayFunc(Display);
 	glutKeyboardFunc(Keyboard);
 	glutMouseFunc(Mouse);
 	glutMotionFunc(MouseMove);
-	// rq: le callback de fonction (fonction de rappel) est une fonction qui est passée en argument à une
-	// autre fonction. Ici, le main fait usage des deux fonctions de rappel (qui fonctionnent en même temps)
-	// alors qu'il ne les connaît pas par avance.
-	AssignColor();
 
+	// Init variables
+	InitVariables();
+
+	// Init menu
 	AddMenu();
 
-
-	// Entrée dans la boucle principale de glut, traitement des évènements 
-	glutMainLoop();         // lancement de la boucle de réception des évènements
-	system("pause");
+	glutMainLoop();
 
 	return 0;
 }
@@ -266,15 +262,51 @@ void Display()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	DrawPolygonWire(polygon, BaseColor->at(0), BaseColor->at(1), BaseColor->at(2));
-	
-	if (polygon.size() > 2) {
-		vector<point> bezier = DeCasteljau(polygon);
-		DrawPolygonWire(bezier, DeCastelColor->at(0), DeCastelColor->at(1), DeCastelColor->at(2));
-		vector<point> spline = Spline(polygon);
-		DrawPolygonWire(spline, SplineColor->at(0), SplineColor->at(1), SplineColor->at(2));
+	for (int i = 0; i < curves[0].size(); ++i)
+	{
+		DrawPolygonWire(curves[0][i], BaseColor->at(0), BaseColor->at(1), BaseColor->at(2));
+		if (curves[0][i].size() > 2) {
+			vector<point> bezier = DeCasteljau(curves[0][i]);
+			DrawPolygonWire(bezier, DeCastelColor->at(0), DeCastelColor->at(1), DeCastelColor->at(2));
+		}
 	}
-	
+
+	for (int i = 0; i < curves[1].size(); ++i)
+	{
+		DrawPolygonWire(curves[1][i], BaseColor->at(0), BaseColor->at(1), BaseColor->at(2));
+		if (curves[1][i].size() > 2) {
+			vector<point> spline = Spline(curves[1][i]);
+			DrawPolygonWire(spline, SplineColor->at(0), SplineColor->at(1), SplineColor->at(2));
+		}
+	}
+
+	for (int i = 0; i < curves[2].size(); ++i)
+	{
+		DrawPolygonWire(curves[2][i], BaseColor->at(0), BaseColor->at(1), BaseColor->at(2));
+		if (curves[2][i].size() > 2) {
+			vector<point> bezier = DeCasteljau(curves[2][i]);
+			DrawPolygonWire(bezier, DeCastelColor->at(0), DeCastelColor->at(1), DeCastelColor->at(2));
+		}
+		if (curves[2][i].size() > 4) {
+			vector<point> spline = Spline(curves[2][i]);
+			DrawPolygonWire(spline, SplineColor->at(0), SplineColor->at(1), SplineColor->at(2));
+		}
+	}
+
+	glBegin(GL_POINTS);
+	glColor3f(1.0f, 1.0f, 1.0f);
+	for (int i = 0; i < curves.size(); ++i)
+	{
+		for (int j = 0; j < curves[i].size(); ++j)
+		{
+			for (int k = 0; k < curves[i][j].size(); ++k)
+			{
+				glVertex2f(curves[i][j][k].x, curves[i][j][k].y);
+			}
+		}
+	}
+	glEnd();
+
 	glutSwapBuffers();
 	glFlush();
 }
@@ -295,34 +327,97 @@ void DrawPolygonWire(vector<point> polygon, float r, float g, float b)
 
 void Mouse(int button, int state, int x, int y)
 {
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
-	{
-
-		polygon.push_back(point(x, y));
-
-		glutPostRedisplay();
-	}
-
-	if (button == GLUT_RIGHT_BUTTON)
+	if (button == GLUT_LEFT_BUTTON)
 	{
 		if (state == GLUT_DOWN) {
-			for (int i = 0; i < polygon.size(); ++i) {
-				if (polygon[i].x - x < 15 && polygon[i].x - x > -15 && polygon[i].y - y < 15 && polygon[i].y - y > -15)
-					pickedPoint = i;
+			int current;
+			switch (mode) {
+			case 1:
+				current = curves[0].size() - 1;
+				curves[0][current].push_back(point(x, y));
+				break;
+			case 2:
+				current = curves[1].size() - 1;
+				curves[1][current].push_back(point(x, y));
+				break;
+			case 3:
+				current = curves[2].size() - 1;
+				curves[2][current].push_back(point(x, y));
+				break;
+			case 4:
+				for (int i = 0; i < curves.size(); ++i) {
+					for (int j = 0; j < curves[i].size(); ++j) {
+						for (int k = 0; k < curves[i][j].size(); ++k) {
+							if (curves[i][j][k].x - x < 15 && curves[i][j][k].x - x > -15 && curves[i][j][k].y - y < 15 && curves[i][j][k].y - y > -15) {
+								pickedCurveType = i;
+								pickedCurve = j;
+								pickedPoint = k;
+							}
+						}
+					}
+				}
+				break;
+			case 5:
+				// raccordement
+				break;
+			case 6:
+				for (int i = 0; i < curves.size(); ++i) {
+					for (int j = 0; j < curves[i].size(); ++j) {
+						for (int k = 0; k < curves[i][j].size(); ++k) {
+							if (curves[i][j][k].x - x < 15 && curves[i][j][k].x - x > -15 && curves[i][j][k].y - y < 15 && curves[i][j][k].y - y > -15) {
+								Translation(i, j);
+								mode = 0;
+							}
+						}
+					}
+				}
+				break;
+			case 7:
+				for (int i = 0; i < curves.size(); ++i) {
+					for (int j = 0; j < curves[i].size(); ++j) {
+						for (int k = 0; k < curves[i][j].size(); ++k) {
+							if (curves[i][j][k].x - x < 15 && curves[i][j][k].x - x > -15 && curves[i][j][k].y - y < 15 && curves[i][j][k].y - y > -15) {
+								Rotation(i, j);
+								mode = 0;
+							}
+						}
+					}
+				}
+				break;
+			case 8:
+				for (int i = 0; i < curves.size(); ++i) {
+					for (int j = 0; j < curves[i].size(); ++j) {
+						for (int k = 0; k < curves[i][j].size(); ++k) {
+							if (curves[i][j][k].x - x < 15 && curves[i][j][k].x - x > -15 && curves[i][j][k].y - y < 15 && curves[i][j][k].y - y > -15) {
+								Scaling(i, j);
+								mode = 0;
+							}
+						}
+					}
+				}
+				break;
 			}
+			glutPostRedisplay();
 		}
 
 		if (state == GLUT_UP)
-			pickedPoint = -1;
+		{
+			switch (mode) {
+			case 4:
+				pickedCurveType = -1;
+				pickedCurve = -1;
+				pickedPoint = -1;
+			}
+		}
 	}
 }
 
 
 void MouseMove(int x, int y)
 {
-	if (pickedPoint > -1) {
-		polygon[pickedPoint].x = x;
-		polygon[pickedPoint].y = y;
+	if (pickedCurveType > -1 && pickedCurve > -1 && pickedPoint > -1) {
+		curves[pickedCurveType][pickedCurve][pickedPoint].x = x;
+		curves[pickedCurveType][pickedCurve][pickedPoint].y = y;
 		glutPostRedisplay();
 	}
 }
@@ -336,18 +431,18 @@ void Keyboard(unsigned char touche, int x, int y){
 		break;
 
 	case 'r':
-		Reset();
+		InitVariables();
 		break;
 	case '+':
-		pasAdaptif++;
+		pas++;
 		break;
 	case '-':
-		pasAdaptif--;
+		pas--;
+		break;
+	case '*':
+		pasAdaptatif = !pasAdaptatif;
 		break;
 	}
-
-	
-
 
 	glutPostRedisplay();
 }
@@ -360,14 +455,19 @@ void Keyboard(unsigned char touche, int x, int y){
 #pragma region MENU
 
 
-void Reset()
-{
-	polygon.clear();
-}
-
 void AddMenu()
 {
-	int menuBColorWindow = glutCreateMenu(SelectBaseColor);
+	int menuCourbes = glutCreateMenu(SelectCurves);
+	glutAddMenuEntry("Bezier", 0);
+	glutAddMenuEntry("Spline", 1);
+	glutAddMenuEntry("Bezier/Spline", 2);
+
+	int menuTransformations = glutCreateMenu(SelectTranformation);
+	glutAddMenuEntry("Translation", 0);
+	glutAddMenuEntry("Rotation", 1);
+	glutAddMenuEntry("Scaling", 2);
+
+	int menuColorBase = glutCreateMenu(SelectBaseColor);
 	glutAddMenuEntry("Rouge", 0);
 	glutAddMenuEntry("Vert", 1);
 	glutAddMenuEntry("Bleu", 2);
@@ -375,7 +475,7 @@ void AddMenu()
 	glutAddMenuEntry("Jaune", 4);
 	glutAddMenuEntry("Violet", 5);
 	glutAddMenuEntry("Orange", 6);
-	int menuDCWindow = glutCreateMenu(SelectDeCastelColor);
+	int menuColorBeziers = glutCreateMenu(SelectDeCastelColor);
 	glutAddMenuEntry("Rouge", 0);
 	glutAddMenuEntry("Vert", 1);
 	glutAddMenuEntry("Bleu", 2);
@@ -383,7 +483,7 @@ void AddMenu()
 	glutAddMenuEntry("Jaune", 4);
 	glutAddMenuEntry("Violet", 5);
 	glutAddMenuEntry("Orange", 6);
-	int menuSPWindow = glutCreateMenu(SelectSplineColor);
+	int menuColorSplines = glutCreateMenu(SelectSplineColor);
 	glutAddMenuEntry("Rouge", 0);
 	glutAddMenuEntry("Vert", 1);
 	glutAddMenuEntry("Bleu", 2);
@@ -391,42 +491,77 @@ void AddMenu()
 	glutAddMenuEntry("Jaune", 4);
 	glutAddMenuEntry("Violet", 5);
 	glutAddMenuEntry("Orange", 6);
-	int menuTranslationWindow = glutCreateMenu(SelectParamUtil);
-	glutAddMenuEntry("X", 0);
-	glutAddMenuEntry("Y", 1);
-	int menuScalingWindow = glutCreateMenu(SelectMatriceScaling);
-	glutAddMenuEntry("X", 0);
-	glutAddMenuEntry("Y", 1);
-	int menuRotationWindow = glutCreateMenu(SelectMatriceRotation);
-	glutAddMenuEntry("X", 0);
-	glutAddMenuEntry("Y", 1);
-	glutCreateMenu(Select);
-	glutAddSubMenu("Couleur point de passage", menuBColorWindow);
-	glutAddSubMenu("Couleur De casteljau", menuDCWindow);
-	glutAddSubMenu("Couleur Spline", menuSPWindow);
-	glutAddSubMenu("Matrice Translation", menuTranslationWindow);
-	glutAddSubMenu("Matrice Scaling", menuScalingWindow);
-	glutAddSubMenu("Matrice Rotation", menuRotationWindow);
-	glutAddMenuEntry("Ajouter Point", 9);
+	int menuColor = glutCreateMenu(SelectVoid);
+	glutAddSubMenu("Points de contrôles", menuColorBase);
+	glutAddSubMenu("Beziers", menuColorBeziers);
+	glutAddSubMenu("Splines", menuColorSplines);
+
+	glutCreateMenu(SelectMain);
+	glutAddSubMenu("Courbes", menuCourbes);
+	glutAddSubMenu("Transformations", menuTransformations);
+	glutAddMenuEntry("Move Points", 3);
+	//glutAddMenuEntry("Raccordement", 4);
+	glutAddSubMenu("Couleurs", menuColor);
 	glutAddMenuEntry("Reset", 8);
 	glutAddMenuEntry("Quitter", 7);
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
-void Select(int selection)
+void SelectVoid(int i) {}
+
+void SelectMain(int selection)
 {
+	ClearMode();
 	switch (selection) {
+	case 3:
+		mode = 4;
+		break;
+	case 4:
+		
+		break;
 	case 7:
 		exit(0);
 		break;
 	case 8:
-		Reset();
-		break;
-	case 9:
-		AjouterPosition();
+		InitVariables();
 		break;
 	}
 	glutPostRedisplay();
+}
+
+void SelectCurves(int selection)
+{
+	ClearMode();
+	switch (selection) {
+	case 0:
+		mode = 1;
+		curves[0].push_back(vector<point>());
+		break;
+	case 1:
+		mode = 2;
+		curves[1].push_back(vector<point>());
+		break;
+	case 2:
+		mode = 3;
+		curves[2].push_back(vector<point>());
+		break;
+	}
+}
+
+void SelectTranformation(int selection)
+{
+	ClearMode();
+	switch (selection) {
+	case 0:
+		mode = 6;
+		break;
+	case 1:
+		mode = 7;
+		break;
+	case 2:
+		mode = 8;
+		break;
+	}
 }
 
 vector<float>* SelectColor(int selection)
@@ -470,214 +605,184 @@ vector<float>* SelectColor(int selection)
 		v->push_back(0.4f);
 		v->push_back(0.0f);
 		break;
-
 	}
 
 	return v;
 }
 
-void SelectBaseColor(int selection) {
-
+void SelectBaseColor(int selection)
+{
+	ClearMode();
 	BaseColor->clear();
 	BaseColor = SelectColor(selection);
-
 	glutPostRedisplay();
 }
 
 void SelectDeCastelColor(int selection)
 {
+	ClearMode();
 	DeCastelColor->clear();
 	DeCastelColor = SelectColor(selection);
-
 	glutPostRedisplay();
 }
 
 void SelectSplineColor(int selection)
 {
+	ClearMode();
 	SplineColor->clear();
 	SplineColor = SelectColor(selection);
-
 	glutPostRedisplay();
 }
 
-void SelectParamUtil(int selection)
+void Translation(int curveType, int curve)
 {
-	vec4 direction(0.0f,0.0f,0.0f,1.0f);
-	
-	int size = polygon.size();
+	float x, y = 0;
+	printf("Entrer le facteur x : ");
+	scanf_s("%f", &x);
+	printf("Entrer le facteur y : ");
+	scanf_s("%f", &y);
+	Translation(curveType, curve, x, y);
+}
 
-	switch (selection)
+void Translation(int curveType, int curve, float x, float y)
+{
+	vec4 direction(x, y, 0.0f, 1.0f);
+	int size = curves[curveType][curve].size();
+	for (int i = 0; i < size; i++)
 	{
-	case 0:
-		printf("Entrer le facteur x : ");
-		scanf_s("%f", &(direction.x));
-		for (int i = 0; i < size; i++)
-		{
-			polygon[i] = polygon[i] + direction;
-		}
-		break;
-	case 1:
-		printf("Entrer le facteur y : ");
-		scanf_s("%f", &(direction.y));
-		for (int i = 0; i < size; i++)
-		{
-			polygon[i] = polygon[i] + direction;
-		}
-		break;
+		curves[curveType][curve][i] = curves[curveType][curve][i] + direction;
 	}
-
 	glutPostRedisplay();
 }
 
-void SelectMatriceScaling(int selection) {
-	vec4 direction(0.0f, 0.0f, 0.0f, 1.0f);
-
-	int size = polygon.size();
-
-	vector<point> pointsMin_Max;
-	for (int i = 0; i < size; i++)
-	{
-		if (!rotated)
-		{
-			if (_xMin > polygon.at(i).x)
-			{
-				_xMin = polygon.at(i).x;
-			}
-			if (_yMin > polygon.at(i).y)
-			{
-				_yMin = polygon.at(i).y;
-			}
-		}
-		
-		pointsMin_Max.push_back(polygon.at(i));
-	}
-
-	for (int i = 0; i < size; i++)
-	{
-		pointsMin_Max.at(i).x -= _xMin;
-		pointsMin_Max.at(i).y -= _yMin;
-	}
-
-	switch (selection)
-	{
-	case 0:
-		printf("Entrer le facteur x : ");
-		scanf_s("%f", &(direction.x));
-		for (int i = 0; i < size; i++)
-		{
-			pointsMin_Max[i] = pointsMin_Max[i] * direction;
-		}
-		break;
-	case 1:
-		printf("Entrer le facteur y : ");
-		scanf_s("%f", &(direction.y));
-		for (int i = 0; i < size; i++)
-		{
-			pointsMin_Max[i] = pointsMin_Max[i] * direction;
-		}
-		break;
-	}
-
-	polygon.clear();
-
-	for (int i = 0; i < size; i++)
-	{
-		pointsMin_Max.at(i).x += _xMin;
-		pointsMin_Max.at(i).y += _yMin;
-		polygon.push_back(pointsMin_Max.at(i));
-	}
-
-	rotated = true;
-
-	glutPostRedisplay();
-}
-
-void SelectMatriceRotation(int selection)
+void Rotation(int curveType, int curve)
 {
 	static vec4 directionRotation(0.0f, 0.0f, 0.0f, 1.0f);
 
-	int size = polygon.size();
-
-	
+	int size = curves[curveType][curve].size();
 
 	vector<point> pointsMin_Max;
 	for (int i = 0; i < size; i++)
 	{
-		if (!rotated)
-		{
-			if (_xMin > polygon.at(i).x)
-			{
-				_xMin = polygon.at(i).x;
-			}
-			if (_yMin > polygon.at(i).y)
-			{
-				_yMin = polygon.at(i).y;
-			}
-		}
-		
-		pointsMin_Max.push_back(polygon.at(i));
+		if (_xMin > curves[curveType][curve][i].x)
+			_xMin = curves[curveType][curve][i].x;
+		if (_yMin > curves[curveType][curve][i].y)
+			_yMin = curves[curveType][curve][i].y;
+
+		pointsMin_Max.push_back(curves[curveType][curve][i]);
 	}
 
 	for (int i = 0; i < size; i++)
 	{
-		pointsMin_Max.at(i).x -= _xMin;
-		pointsMin_Max.at(i).y -= _yMin;
-	}
-	
-	switch (selection)
-	{
-	case 0:
-		printf("Entrer le facteur x : ");
-		scanf_s("%f", &(directionRotation.x));
-		for (int i = 0; i < size; i++)
-		{
-			pointsMin_Max[i] = pointsMin_Max[i] - directionRotation;
-		}
-		break;
-	case 1:
-		printf("Entrer le facteur x : ");
-		scanf_s("%f", &(directionRotation.x));
-		for (int i = 0; i < size; i++)
-		{
-			pointsMin_Max[i] = pointsMin_Max[i] - directionRotation;
-		}
-		break;
+		pointsMin_Max[i].x -= _xMin;
+		pointsMin_Max[i].y -= _yMin;
 	}
 
-	polygon.clear();
+	printf("Entrer le facteur z : ");
+	scanf_s("%f", &(directionRotation.x));
+	for (int i = 0; i < size; i++)
+	{
+		pointsMin_Max[i] = pointsMin_Max[i] - directionRotation;
+	}
+
+	curves[curveType][curve].clear();
 
 	for (int i = 0; i < size; i++)
 	{
-		pointsMin_Max.at(i).x += _xMin;
-		pointsMin_Max.at(i).y += _yMin;
-		polygon.push_back(pointsMin_Max.at(i));
+		pointsMin_Max[i].x += _xMin;
+		pointsMin_Max[i].y += _yMin;
+		curves[curveType][curve].push_back(pointsMin_Max.at(i));
 	}
-	rotated = true;
 
 	glutPostRedisplay();
 }
 
-void AjouterPosition()
-{
-	float _x;
-	float _y;
+void Scaling(int curveType, int curve) {
+	vec4 direction(0.0f, 0.0f, 0.0f, 1.0f);
+	int size = curves[curveType][curve].size();
+
+	vector<point> pointsMin_Max;
+	for (int i = 0; i < size; i++)
+	{
+		if (_xMin > curves[curveType][curve][i].x)
+			_xMin = curves[curveType][curve][i].x;
+		if (_yMin > curves[curveType][curve][i].y)
+			_yMin = curves[curveType][curve][i].y;
+		
+		pointsMin_Max.push_back(curves[curveType][curve][i]);
+	}
+
+	for (int i = 0; i < size; i++)
+	{
+		pointsMin_Max[i].x -= _xMin;
+		pointsMin_Max[i].y -= _yMin;
+	}
 
 	printf("Entrer le facteur x : ");
-	scanf_s("%f", &(_x));
+	scanf_s("%f", &(direction.x));
 	printf("Entrer le facteur y : ");
-	scanf_s("%f", &(_y));
+	scanf_s("%f", &(direction.y));
+	for (int i = 0; i < size; i++)
+	{
+		pointsMin_Max[i] = pointsMin_Max[i] * direction;
+	}
 
-	polygon.push_back(point(_x, _y));
+	curves[curveType][curve].clear();
+
+	for (int i = 0; i < size; i++)
+	{
+		pointsMin_Max[i].x += _xMin;
+		pointsMin_Max[i].y += _yMin;
+		curves[curveType][curve].push_back(pointsMin_Max.at(i));
+	}
 
 	glutPostRedisplay();
 }
+
+
+void ClearMode()
+{
+	switch (mode)
+	{
+	case 1:
+		if (curves[0][curves[0].size() - 1].size() < 3)
+			curves[0].pop_back();
+		break;
+	case 2:
+		if (curves[1][curves[1].size() - 1].size() < 3)
+			curves[1].pop_back();
+		break;
+	case 3:
+		if (curves[2][curves[2].size() - 1].size() < 3)
+			curves[2].pop_back();
+		break;
+	case 4:
+		pickedCurveType = -1;
+		pickedCurve = -1;
+		pickedPoint = -1;
+		break;
+	}
+	mode = 0;
+	glutPostRedisplay();
+}
+
+
 #pragma endregion MENU
 
 
 vector<point> DeCasteljau(vector<point> polygon)
 {
 	vector<point> _bezier;
-	float p = pasAdaptif;
+	float p;
+	if (pasAdaptatif) {
+		float f = 0;
+		for (int i = 0; i < polygon.size() - 1; ++i) {
+			f += Magnitude(polygon[i], polygon[i+1]);
+		}
+		p = f / 20;
+	}
+	else
+		p = pas;
 
 	point _point;
 	for (int k = 0; k <= p; ++k) {
@@ -709,6 +814,13 @@ point GetBezierPoint(float t, vector<point> polygon)
 	}
 
 	return P[n][0];
+}
+
+
+float Magnitude(point a, point b)
+{
+	point p = a - b;
+	return sqrt(p.x*p.x + p.y*p.y);
 }
 
 
@@ -763,16 +875,32 @@ vector<point> Spline(vector<point> polygon)
 	return _spline;
 }
 
-void AssignColor()
+void InitVariables()
 {
+	mode = 0;
+
+	pickedCurveType = -1;
+	pickedCurve = -1;
+	pickedPoint = -1;
+	pasAdaptatif = false;
+	pas = 10;
+
+	curves.clear();
+	curves.push_back(vector<vector<point>>());
+	curves.push_back(vector<vector<point>>());
+	curves.push_back(vector<vector<point>>());
+
+	BaseColor->clear();
 	BaseColor->push_back(0.0f);
 	BaseColor->push_back(0.0f);
 	BaseColor->push_back(1.0f);
 
+	DeCastelColor->clear();
 	DeCastelColor->push_back(1.0f);
 	DeCastelColor->push_back(0.0f);
 	DeCastelColor->push_back(0.0f);
 
+	SplineColor->clear();
 	SplineColor->push_back(0.0f);
 	SplineColor->push_back(1.0f);
 	SplineColor->push_back(0.0f);
