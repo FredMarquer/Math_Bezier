@@ -11,7 +11,7 @@
 #include <vector>
 #include "stdafx.h"
 #include <iostream>
-#include <vector> //Ne pas oublier !
+#include <vector>
 #include <math.h>
 #include <stack>
 #include <list>
@@ -68,10 +68,10 @@ inline point operator- (const point& a, const point& b) {
 	return p;
 }
 inline bool operator== (const point& a, const point& b) {
-	return (a.x == b.x && a.y == b.y);
+	return (abs(a.x - b.x) < 0.001f && abs(a.y - b.y) < 0.001f);
 }
 inline bool operator!= (const point& a, const point& b) {
-	return !(a == b);
+	return (abs(a.x - b.x) > 0.001f || abs(a.y - b.y) > 0.001f);
 }
 
 
@@ -180,19 +180,15 @@ inline point operator*(const point& a, const vec4& d) {
 
 
 vector<vector<vector<point>>> curves;
+bool Intersection(point a, point b, point c, point d, point* i);
+point inter;
 
 class Raccordement
 {
 public:
 	int bezierA, bezierB;
-	virtual void Init() 
-	{
-		cout << "Init r" << endl;
-	}
-	virtual void Update()
-	{
-		cout << "Init r" << endl;
-	}
+	virtual void Init() {}
+	virtual void Update() {}
 };
 
 class C0 : public Raccordement
@@ -277,15 +273,102 @@ class C2 : public Raccordement
 {
 public:
 	point lastPosition;
+	point lastPositionControleA1Delta;
+	point lastPositionControleB1Delta;
+	point lastPositionControleA2Delta;
+	point lastPositionControleB2Delta;
 
 	void Init()
 	{
+		int lastA = curves[0][bezierA].size() - 1;
+		lastPosition = (curves[0][bezierA][lastA] + curves[0][bezierB][0]) * 0.5f;
+		curves[0][bezierA][lastA] = lastPosition;
+		curves[0][bezierB][0] = lastPosition;
 		
+		lastPositionControleA1Delta = curves[0][bezierA][lastA - 1] - curves[0][bezierA][lastA];
+		lastPositionControleB1Delta = curves[0][bezierB][1] - curves[0][bezierB][0];
+		float r1 = lastPositionControleA1Delta.magnitude();
+		float r2 = lastPositionControleB1Delta.magnitude();
+		point direction = ((curves[0][bezierA][lastA - 1] - curves[0][bezierA][lastA]) + -(curves[0][bezierB][1] - curves[0][bezierB][0])) * 0.5f;
+		direction = direction.normalised();
+		lastPositionControleA1Delta = direction * r1; 
+		lastPositionControleB1Delta = -direction * r2;
+		curves[0][bezierA][lastA - 1] = curves[0][bezierA][lastA] + lastPositionControleA1Delta;
+		curves[0][bezierB][1] = curves[0][bezierB][0] + lastPositionControleB1Delta;
+
+		point i;
+		if (Intersection(curves[0][bezierA][lastA - 2], curves[0][bezierA][lastA - 1], curves[0][bezierB][1], curves[0][bezierB][2], &i)) {
+			lastPositionControleA2Delta = (curves[0][bezierA][lastA - 1] - i) * (r1 / r2);
+			lastPositionControleB2Delta = (curves[0][bezierB][1] - i) * (r2 / r1);
+			curves[0][bezierA][lastA - 2] = curves[0][bezierA][lastA - 1] + lastPositionControleA2Delta;
+			curves[0][bezierB][2] = curves[0][bezierB][1] + lastPositionControleB2Delta;
+			inter = i;
+		}
 	}
 
 	void Update()
 	{
-		
+		int lastA = curves[0][bezierA].size() - 1;
+		if (curves[0][bezierA][lastA] != lastPosition || curves[0][bezierB][0] != lastPosition) {
+			if (curves[0][bezierA][lastA] != lastPosition)
+				lastPosition = curves[0][bezierA][lastA];
+			else if (curves[0][bezierB][0] != lastPosition)
+				lastPosition = curves[0][bezierB][0];
+			curves[0][bezierA][lastA] = lastPosition;
+			curves[0][bezierB][0] = lastPosition;
+			curves[0][bezierA][lastA - 1] = curves[0][bezierA][lastA] + lastPositionControleA1Delta;
+			curves[0][bezierB][1] = curves[0][bezierB][0] + lastPositionControleB1Delta;
+			curves[0][bezierA][lastA - 2] = curves[0][bezierA][lastA-1] + lastPositionControleA2Delta;
+			curves[0][bezierB][2] = curves[0][bezierB][1] + lastPositionControleB2Delta;
+		}
+		else if ((curves[0][bezierA][lastA - 1] - curves[0][bezierA][lastA]) != lastPositionControleA1Delta) {
+			float r2 = lastPositionControleB1Delta.magnitude();
+			lastPositionControleA1Delta = curves[0][bezierA][lastA - 1] - curves[0][bezierA][lastA];
+			lastPositionControleB1Delta = -lastPositionControleA1Delta.normalised() * r2;
+			curves[0][bezierB][1] = curves[0][bezierB][0] + lastPositionControleB1Delta;
+			float r1 = lastPositionControleA1Delta.magnitude();
+			point i;
+			if (Intersection(curves[0][bezierA][lastA - 2], curves[0][bezierA][lastA - 1], curves[0][bezierB][1], curves[0][bezierB][2], &i)) {
+				lastPositionControleA2Delta = (curves[0][bezierA][lastA - 1] - i) * (r1 / r2);
+				lastPositionControleB2Delta = (curves[0][bezierB][1] - i) * (r2 / r1);
+				curves[0][bezierA][lastA - 2] = curves[0][bezierA][lastA - 1] + lastPositionControleA2Delta;
+				curves[0][bezierB][2] = curves[0][bezierB][1] + lastPositionControleB2Delta;
+				inter = i;
+			}
+		}
+		else if ((curves[0][bezierB][1] - curves[0][bezierB][0]) != lastPositionControleB1Delta) {
+			float r1 = lastPositionControleA1Delta.magnitude();
+			lastPositionControleB1Delta = curves[0][bezierB][1] - curves[0][bezierB][0];
+			lastPositionControleA1Delta = -lastPositionControleB1Delta.normalised() * r1;
+			curves[0][bezierA][lastA - 1] = curves[0][bezierA][lastA] + lastPositionControleA1Delta;
+			float r2 = lastPositionControleB1Delta.magnitude();
+			point i;
+			if (Intersection(curves[0][bezierA][lastA - 2], curves[0][bezierA][lastA - 1], curves[0][bezierB][1], curves[0][bezierB][2], &i)) {
+				lastPositionControleA2Delta = (curves[0][bezierA][lastA - 1] - i) * (r1 / r2);
+				lastPositionControleB2Delta = (curves[0][bezierB][1] - i) * (r2 / r1);
+				curves[0][bezierA][lastA - 2] = curves[0][bezierA][lastA - 1] + lastPositionControleA2Delta;
+				curves[0][bezierB][2] = curves[0][bezierB][1] + lastPositionControleB2Delta;
+				inter = i;
+			}
+		}
+		else if ((curves[0][bezierA][lastA - 2] - curves[0][bezierA][lastA - 1]) != lastPositionControleA2Delta) {
+			float r1 = lastPositionControleA1Delta.magnitude();
+			float r2 = lastPositionControleB1Delta.magnitude();
+			lastPositionControleA2Delta = curves[0][bezierA][lastA - 2] - curves[0][bezierA][lastA - 1];
+			point i = curves[0][bezierA][lastA - 1] + -lastPositionControleA2Delta * (r2 / r1);
+			lastPositionControleB2Delta = (curves[0][bezierB][1] - i) * (r2 / r1);
+			curves[0][bezierB][2] = curves[0][bezierB][1] + lastPositionControleB2Delta;
+			inter = i;
+		}
+		else if ((curves[0][bezierB][2] - curves[0][bezierB][1]) != lastPositionControleB2Delta) {
+			float r1 = lastPositionControleA1Delta.magnitude();
+			float r2 = lastPositionControleB1Delta.magnitude();
+			lastPositionControleB2Delta = curves[0][bezierB][2] - curves[0][bezierB][1];
+			point i = curves[0][bezierB][1] + -lastPositionControleB2Delta * (r1 / r2);
+			lastPositionControleA2Delta = (curves[0][bezierA][lastA - 1] - i) * (r1 / r2);
+			curves[0][bezierA][lastA - 2] = curves[0][bezierA][lastA - 1] + lastPositionControleA2Delta;
+			inter = i;
+		}
 	}
 };
 
@@ -323,7 +406,7 @@ bool raccordementStep = false;
 void InitVariables();
 void Display(void);
 void DrawPolygonWire(vector<point> polygon, float r, float g, float b);
-void Keyboard(unsigned char touche, int x, int y);
+void KeyBoard(unsigned char touche, int x, int y);
 void Mouse(int bouton, int etat, int x, int y); 
 void MouseMove(int x, int y);
 void AddMenu();
@@ -348,7 +431,7 @@ point BaryCentre(vector<point> points);
 vector<point> DeCasteljau(vector<point>);
 point GetBezierPoint(float f, vector<point> polygon);
 float Distance(point a, point b);
-vector<point> Spline(vector<point> polygon);
+vector<point> Spline(vector<point> polygon, vector<point>* construc);
 
 #pragma endregion DECLARATIONS
 
@@ -373,7 +456,7 @@ int main(int argc, char **argv)
 
 	// Init glut functions
 	glutDisplayFunc(Display);
-	glutKeyboardFunc(Keyboard);
+	glutKeyboardFunc(KeyBoard);
 	glutMouseFunc(Mouse);
 	glutMotionFunc(MouseMove);
 
@@ -418,8 +501,24 @@ void Display()
 	{
 		DrawPolygonWire(curves[1][i], BaseColor->at(0), BaseColor->at(1), BaseColor->at(2));
 		if (curves[1][i].size() > 2) {
-			vector<point> spline = Spline(curves[1][i]);
+			vector<point> construc;
+			vector<point> spline = Spline(curves[1][i], &construc);
 			DrawPolygonWire(spline, SplineColor->at(0), SplineColor->at(1), SplineColor->at(2));
+			glBegin(GL_POINTS);
+			glColor3f(1.0f, 1.0f, 1.0f);
+			for (int i = 0; i < construc.size(); ++i)
+			{
+				glVertex2f(construc[i].x, construc[i].y);
+			}
+			glEnd();
+			glBegin(GL_LINES);
+			glColor3f(1.0f, 1.0f, 1.0f);
+			for (int i = 0; i < construc.size() * 2 / 3; i += 2)
+			{
+				glVertex2f(construc[i].x, construc[i].y);
+				glVertex2f(construc[i+1].x, construc[i+1].y);
+			}
+			glEnd();
 		}
 	}
 
@@ -431,13 +530,30 @@ void Display()
 			DrawPolygonWire(bezier, DeCastelColor->at(0), DeCastelColor->at(1), DeCastelColor->at(2));
 		}
 		if (curves[2][i].size() > 4) {
-			vector<point> spline = Spline(curves[2][i]);
+			vector<point> construc;
+			vector<point> spline = Spline(curves[2][i], &construc);
 			DrawPolygonWire(spline, SplineColor->at(0), SplineColor->at(1), SplineColor->at(2));
+			glBegin(GL_POINTS);
+			glColor3f(1.0f, 1.0f, 1.0f);
+			for (int i = 0; i < construc.size(); ++i)
+			{
+				glVertex2f(construc[i].x, construc[i].y);
+			}
+			glEnd();
+			glBegin(GL_LINES);
+			glColor3f(1.0f, 1.0f, 1.0f);
+			for (int i = 0; i < construc.size() * 2 / 3; i += 2)
+			{
+				glVertex2f(construc[i].x, construc[i].y);
+				glVertex2f(construc[i + 1].x, construc[i + 1].y);
+			}
+			glEnd();
 		}
 	}
 
 	glBegin(GL_POINTS);
 	glColor3f(1.0f, 1.0f, 1.0f);
+	glVertex2f(inter.x, inter.y);
 	for (int i = 0; i < curves.size(); ++i)
 	{
 		for (int j = 0; j < curves[i].size(); ++j)
@@ -585,7 +701,7 @@ void MouseMove(int x, int y)
 }
 
 
-void Keyboard(unsigned char touche, int x, int y){
+void KeyBoard(unsigned char touche, int x, int y){
 	switch (touche)
 	{
 	case VK_ESCAPE:/* Quitter le programme */
@@ -600,6 +716,8 @@ void Keyboard(unsigned char touche, int x, int y){
 		break;
 	case '-':
 		pas--;
+		if (pas < 1)
+			pas = 1;
 		break;
 	case '*':
 		pasAdaptatif = !pasAdaptatif;
@@ -661,7 +779,7 @@ void AddMenu()
 	int menuRaccordement = glutCreateMenu(SelectRaccordement);
 	glutAddMenuEntry("C0", 0);
 	glutAddMenuEntry("C1", 1);
-	//glutAddMenuEntry("C2", 2);
+	glutAddMenuEntry("C2", 2);
 
 	glutCreateMenu(SelectMain);
 	glutAddSubMenu("Courbes", menuCourbes);
@@ -888,6 +1006,44 @@ point BaryCentre(vector<point> points)
 }
 
 
+bool Intersection(point a, point b, point c, point d, point* i)
+{
+	//matrice 1, matrice inverse.
+	float matrice[2][2];
+	float matriceInverse[2][2];
+	float matriceRes[2];
+	float matriceB[2];
+
+	float determinant;
+
+	matrice[0][0] = (b.x - a.x);
+	matrice[0][1] = (c.x - d.x);
+	matrice[1][0] = (b.y - a.y);
+	matrice[1][1] = (c.y - d.y);
+
+	determinant = (matrice[0][0] * matrice[1][1]) - (matrice[0][1] * matrice[1][0]);
+
+	if (determinant == 0)
+		return false;
+	
+	matriceInverse[0][0] = matrice[1][1] / determinant;
+	matriceInverse[0][1] = -matrice[0][1] / determinant;
+	matriceInverse[1][0] = -matrice[1][0] / determinant;
+	matriceInverse[1][1] = matrice[0][0] / determinant;
+
+	matriceB[0] = (c.x - a.x);
+	matriceB[1] = (c.y - a.y);
+
+	matriceRes[0] = matriceInverse[0][0] * matriceB[0] + matriceInverse[0][1] * matriceB[1];
+	matriceRes[1] = matriceInverse[1][0] * matriceB[0] + matriceInverse[1][1] * matriceB[1];
+
+	i->x = ((1 - matriceRes[0]) * a.x) + (matriceRes[0] * b.x);
+	i->y = ((1 - matriceRes[0]) * a.y) + (matriceRes[0] * b.y);
+
+	return true;
+}
+
+
 void ClearMode()
 {
 	switch (mode)
@@ -927,7 +1083,7 @@ vector<point> DeCasteljau(vector<point> polygon)
 		for (int i = 0; i < polygon.size() - 1; ++i) {
 			f += Distance(polygon[i], polygon[i + 1]);
 		}
-		p = f / 20;
+		p = f / 100;
 	}
 	else
 		p = pas;
@@ -972,7 +1128,7 @@ float Distance(point a, point b)
 }
 
 
-vector<point> Spline(vector<point> polygon)
+vector<point> Spline(vector<point> polygon, vector<point>* construc)
 {
 	int size = polygon.size();
 	if (size < 5)
@@ -1020,6 +1176,14 @@ vector<point> Spline(vector<point> polygon)
 		}
 	}
 
+	for (int i = 0; i < R.size(); ++i) {
+		construc->push_back(R[i]);
+	}
+
+	for (int i = 0; i < U.size(); ++i) {
+		construc->push_back(U[i]);
+	}
+
 	return _spline;
 }
 
@@ -1053,4 +1217,10 @@ void InitVariables()
 	SplineColor->push_back(0.0f);
 	SplineColor->push_back(1.0f);
 	SplineColor->push_back(0.0f);
+
+	nbC0 = 0;
+	nbC1 = 0;
+	nbC2 = 0;
+	raccordements.clear();
+	inter = point(-5, -5);
 }
