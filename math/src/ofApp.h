@@ -4,7 +4,9 @@
 #include "ofxGui.h"
 #include "Scene.h"
 #include "SceneBSpline.h"
-#include "ScenePrimitiveExtrusion.h"
+#include "SceneExtrusionSimple.h"
+#include "SceneExtrusionRevolution.h"
+#include "SceneExtrusionGeneralisee.h"
 #include "SceneSurfaceBezier.h"
 
 class ofApp : public ofBaseApp{
@@ -25,13 +27,17 @@ class ofApp : public ofBaseApp{
 		void gotMessage(ofMessage msg);
 		
 		void LaunchBSplineScene();
-		void LaunchPrimitiveExtrusionScene();
+		void LaunchExtrusionSimpleScene();
+		void LaunchExtrusionRevolutionScene();
+		void LaunchExtrusionGeneraliseeScene();
 		void LaunchSurfaceBezierScene();
 		void BackToMainMenu();
 
 		ofxPanel mainGui;
 		ofxButton BSplineButton;
-		ofxButton PrimitiveExtrusionButton;
+		ofxButton ExtrusionSimpleButton;
+		ofxButton ExtrusionRevolutionButton;
+		ofxButton ExtrusionGeneraliseeButton;
 		ofxButton SurfaceBezierButton;
 
 		ofxPanel backGui;

@@ -91,6 +91,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\BSpline.cpp" />
+    <ClCompile Include="src\ExtrusionGeneralisee.cpp" />
+    <ClCompile Include="src\ExtrusionRevolution.cpp" />
+    <ClCompile Include="src\ExtrusionSimple.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\ofApp.cpp" />
     <ClCompile Include="..\..\..\addons\ofxGui\src\ofxBaseGui.cpp" />
@@ -101,15 +104,19 @@
     <ClCompile Include="..\..\..\addons\ofxGui\src\ofxSlider.cpp" />
     <ClCompile Include="..\..\..\addons\ofxGui\src\ofxSliderGroup.cpp" />
     <ClCompile Include="..\..\..\addons\ofxGui\src\ofxToggle.cpp" />
-    <ClCompile Include="src\PrimitiveExtrusion.cpp" />
     <ClCompile Include="src\SceneBase.cpp" />
     <ClCompile Include="src\SceneBSpline.cpp" />
-    <ClCompile Include="src\ScenePrimitiveExtrusion.cpp" />
+    <ClCompile Include="src\SceneExtrusionGeneralisee.cpp" />
+    <ClCompile Include="src\SceneExtrusionRevolution.cpp" />
+    <ClCompile Include="src\SceneExtrusionSimple.cpp" />
     <ClCompile Include="src\SceneSurfaceBezier.cpp" />
     <ClCompile Include="src\SurfaceBezier.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\BSpline.h" />
+    <ClInclude Include="src\ExtrusionGeneralisee.h" />
+    <ClInclude Include="src\ExtrusionRevolution.h" />
+    <ClInclude Include="src\ExtrusionSimple.h" />
     <ClInclude Include="src\ofApp.h" />
     <ClInclude Include="..\..\..\addons\ofxGui\src\ofxBaseGui.h" />
     <ClInclude Include="..\..\..\addons\ofxGui\src\ofxButton.h" />
@@ -120,10 +127,11 @@
     <ClInclude Include="..\..\..\addons\ofxGui\src\ofxSlider.h" />
     <ClInclude Include="..\..\..\addons\ofxGui\src\ofxSliderGroup.h" />
     <ClInclude Include="..\..\..\addons\ofxGui\src\ofxToggle.h" />
-    <ClInclude Include="src\PrimitiveExtrusion.h" />
     <ClInclude Include="src\SceneBase.h" />
     <ClInclude Include="src\SceneBSpline.h" />
-    <ClInclude Include="src\ScenePrimitiveExtrusion.h" />
+    <ClInclude Include="src\SceneExtrusionGeneralisee.h" />
+    <ClInclude Include="src\SceneExtrusionRevolution.h" />
+    <ClInclude Include="src\SceneExtrusionSimple.h" />
     <ClInclude Include="src\SceneSurfaceBezier.h" />
     <ClInclude Include="src\SurfaceBezier.h" />
   </ItemGroup>

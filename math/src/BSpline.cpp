@@ -4,29 +4,7 @@
 BSpline::BSpline(void)
 {
 	nbPas = 50;
-	controlPoints.push_back(ofVec3f(200, 600, 0));
-	controlPoints.push_back(ofVec3f(250, 200, 0));
-	controlPoints.push_back(ofVec3f(300, 600, 0));
-	controlPoints.push_back(ofVec3f(350, 200, 0));
-	controlPoints.push_back(ofVec3f(400, 600, 0));
-	controlPoints.push_back(ofVec3f(450, 200, 0));
-	controlPoints.push_back(ofVec3f(500, 600, 0));
-	controlPoints.push_back(ofVec3f(550, 200, 0));
-	controlPoints.push_back(ofVec3f(600, 600, 0));
-	knots.push_back(1.0f);
-	knots.push_back(2.0f);
-	knots.push_back(3.0f);
-	knots.push_back(4.0f);
-	knots.push_back(5.0f);
-	knots.push_back(6.0f);
-	knots.push_back(7.0f);
-	knots.push_back(8.0f);
-	knots.push_back(9.0f);
-	knots.push_back(10.0f);
-	knots.push_back(11.0f);
-	knots.push_back(12.0f);
-	knots.push_back(13.0f);
-	GenerateBSpline();
+	degree = 3;
 }
 
 
@@ -39,21 +17,39 @@ void BSpline::Draw()
 {
 	ofSetColor(ofColor::red);
 	int imax  = bSplinePoints.size() - 1;
-	for (int i = 0; i < imax; ++i)
+	for (int i = 0; i < imax; ++i) {
 		ofLine(bSplinePoints[i], bSplinePoints[i+1]);
+	}
 
 	ofSetColor(ofColor::black);
 	imax = controlPoints.size() - 1;
 	for (int i = 0; i < imax; ++i) 
 		ofLine(controlPoints[i], controlPoints[i+1]);
+
+	for (int i = 0; i < controlPoints.size(); ++i) {
+		ofPushMatrix();
+		ofTranslate(controlPoints[i]);
+		ofFill();
+		ofSetColor(ofColor::white);
+		ofDrawBox(8);
+		ofNoFill();
+		ofSetColor(ofColor::black);
+		ofDrawBox(8);
+		ofPopMatrix();
+	}
 }
 
 
 void BSpline::GenerateBSpline()
 {
 	bSplinePoints.clear();
+
+	if (controlPoints.size() < 3)
+		return;
+	
 	for (int i = 0; i <= nbPas; ++i) {
-		ofVec3f point = CalculateBSplinePoint(float(i)/nbPas, knots, controlPoints);
+		float t = float(i)/nbPas * (knots[knots.size()-degree-1] - knots[degree]) + knots[degree];
+		ofVec3f point = CalculateBSplinePoint(t, knots, controlPoints);
 		bSplinePoints.push_back(point);
 	}
 }
@@ -61,13 +57,10 @@ void BSpline::GenerateBSpline()
 
 ofVec3f BSpline::CalculateBSplinePoint(float t, vector<float> T, vector<ofVec3f> controls)
 {
-	int p = 3;
-	t = t * (knots[knots.size()-p-1] - knots[p]) + knots[p];
-
 	ofVec3f point = ofVec3f(0, 0, 0);
-	for (int i = 0; i < controls.size(); ++i)
-		point += controls[i] * DeBoor(p, i, t, T);
-
+	for (int i = 0; i < controls.size(); ++i) {
+		point += controls[i] * DeBoor(degree, i, t, T);
+	}
 	return point;
 }
 
@@ -97,8 +90,8 @@ float BSpline::DeBoor(int p, int i, float t, vector<float> T)
 		
 		return b + d;
 	}
-}
-*/
+}*/
+
 
 float BSpline::DeBoor(int p, int i, float t, vector<float> T)
 {
@@ -134,6 +127,61 @@ float BSpline::DeBoor(int p, int i, float t, vector<float> T)
 			P[pp].push_back(e);
 		}
 	}
-	
 	return P[p][0];
+}
+
+
+int BSpline::GetControlPointAtPosition(ofVec2f position)
+{
+	for (int i = 0; i < controlPoints.size(); ++i) {
+		if (position.distance(controlPoints[i]) < 10)
+			return i;
+	}
+	return -1;
+}
+
+
+void BSpline::UpdateDegree(int newDegree)
+{
+	degree = newDegree;
+	CheckKnots();
+}
+
+
+void BSpline::CheckKnots()
+{
+	int delta = knots.size() - (controlPoints.size() + degree + 1);
+	if (delta < 0) {
+		for (int i = delta; i < 0; ++i) {
+			if (knots.size() == 0)
+				knots.push_back(0);
+			else
+				knots.push_back(knots[knots.size()-1] + 1);
+		}
+	}
+	else if (delta > 0) {
+		for (int i = 0; i < delta; ++i) {
+			knots.pop_back();
+		}
+	}
+}
+
+
+void BSpline::MoveControl(int controlIndex, ofVec3f pos)
+{
+	controlPoints[controlIndex] = pos;
+	UpdateLocalBSpline(controlIndex);
+}
+
+
+void BSpline::UpdateLocalBSpline(int controlIndex)
+{
+	for (int i = 0; i <= nbPas; ++i)
+	{
+		float t = float(i)/nbPas * (knots[knots.size()-degree-1] - knots[degree]) + knots[degree];
+		if (t > knots[controlIndex] && t < knots[controlIndex + degree + 1]) {
+			ofVec3f point = CalculateBSplinePoint(t, knots, controlPoints);
+			bSplinePoints[i] = point;
+		}
+	}
 }

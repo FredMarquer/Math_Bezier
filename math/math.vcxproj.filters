@@ -34,22 +34,34 @@
     <ClCompile Include="src\SceneBSpline.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\ScenePrimitiveExtrusion.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\SceneSurfaceBezier.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\BSpline.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\PrimitiveExtrusion.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\SurfaceBezier.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\SceneBase.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ExtrusionGeneralisee.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ExtrusionRevolution.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ExtrusionSimple.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\SceneExtrusionRevolution.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\SceneExtrusionSimple.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\SceneExtrusionGeneralisee.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -101,22 +113,34 @@
     <ClInclude Include="src\SceneBSpline.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\ScenePrimitiveExtrusion.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\SceneSurfaceBezier.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\BSpline.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\PrimitiveExtrusion.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\SurfaceBezier.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\SceneBase.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ExtrusionGeneralisee.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ExtrusionRevolution.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ExtrusionSimple.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\SceneExtrusionRevolution.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\SceneExtrusionSimple.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\SceneExtrusionGeneralisee.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

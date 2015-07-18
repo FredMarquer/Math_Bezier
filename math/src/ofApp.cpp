@@ -8,13 +8,17 @@ void ofApp::setup()
 	ofSetVerticalSync(true);
 
 	BSplineButton.addListener(this,&ofApp::LaunchBSplineScene);
-	PrimitiveExtrusionButton.addListener(this,&ofApp::LaunchPrimitiveExtrusionScene);
+	ExtrusionSimpleButton.addListener(this,&ofApp::LaunchExtrusionSimpleScene);
+	ExtrusionRevolutionButton.addListener(this,&ofApp::LaunchExtrusionRevolutionScene);
+	ExtrusionGeneraliseeButton.addListener(this,&ofApp::LaunchExtrusionGeneraliseeScene);
 	SurfaceBezierButton.addListener(this,&ofApp::LaunchSurfaceBezierScene);
 	backButton.addListener(this,&ofApp::BackToMainMenu);
 
 	mainGui.setup();
 	mainGui.add(BSplineButton.setup("B-Spline"));
-	mainGui.add(PrimitiveExtrusionButton.setup("Primitive d'extrusion"));
+	mainGui.add(ExtrusionSimpleButton.setup("Extrusion simple"));
+	mainGui.add(ExtrusionRevolutionButton.setup("Extrusion revolution"));
+	mainGui.add(ExtrusionGeneraliseeButton.setup("Extrusion géneralisée"));
 	mainGui.add(SurfaceBezierButton.setup("Surface de bezier"));
 
 	backGui.setup();
@@ -107,10 +111,26 @@ void ofApp::LaunchBSplineScene()
 }
 
 //--------------------------------------------------------------
-void ofApp::LaunchPrimitiveExtrusionScene()
+void ofApp::LaunchExtrusionSimpleScene()
 {
 	runScene = true;
-	currentScene = new ScenePrimitiveExtrusion;
+	currentScene = new SceneExtrusionSimple;
+	currentScene->Init();
+}
+
+//--------------------------------------------------------------
+void ofApp::LaunchExtrusionRevolutionScene()
+{
+	runScene = true;
+	currentScene = new SceneExtrusionRevolution;
+	currentScene->Init();
+}
+
+//--------------------------------------------------------------
+void ofApp::LaunchExtrusionGeneraliseeScene()
+{
+	runScene = true;
+	currentScene = new SceneExtrusionGeneralisee;
 	currentScene->Init();
 }
 

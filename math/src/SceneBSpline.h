@@ -21,11 +21,33 @@ public:
 
 	void UpdateNbPas();
 
-	ofxPanel gui;
+	void NewBSpline();
+	void EditDegree();
+	void AddControl();
+	void RemoveControl();
+	void EditKnots();
+	void Back();
+
+	ofxPanel guiMain;
 	ofxIntSlider nbPasSlider;
+	ofxButton newBSplineButton;
+
+	ofxPanel guiEdit;
+	ofxButton editDegreeButton;
+	ofxButton addControlButton;
+	ofxButton removeControlButton;
+	ofxButton editKnotsButton;
+	ofxButton backButton;
 
 	float nbPas;
 
-	BSpline bSpline;
+	vector<BSpline> bSplines;
+
+	bool isDragMode;
+	int draggedBSpline;
+	int draggedPoint;
+
+	bool isEditMode;
+	int selectedBSpline;
 };
 
