@@ -19,9 +19,34 @@ public:
 	void mousePressed(int x, int y, int button) override;
 	void mouseReleased(int x, int y, int button) override;
 
+	void EditDegree();
+	void AddControl();
+	void RemoveControl();
+	void EditKnots();
+	void Ok();
+
 	ofEasyCam cam;
 
-	ofxPanel gui;
+	bool isBSplineSetted;
+
+	ofxPanel guiBSpline;
+	ofxButton editDegreeButton;
+	ofxButton addControlButton;
+	ofxButton removeControlButton;
+	ofxButton editKnotsButton;
+	ofxButton okButton;
+
+	ofxPanel guiExtrusion;
+	ofxIntSlider nbPasSlider;
+	ofxFloatSlider angleSlider;
+
+	bool isDragMode;
+	int draggedPoint;
+
+	int selectedControl;
+
+	int nbPas;
+	float angle;
 
 	ExtrusionRevolution extrusionRevolution;
 };

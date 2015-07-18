@@ -15,9 +15,9 @@ public:
 
 	BSpline bSplineBase;
 
+	int nbPas;
 	float height;
 	float sizeRatio;
-	int nbPas;
 
 	vector<vector<ofVec3f>> extrusionVertices;
 };

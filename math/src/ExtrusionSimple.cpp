@@ -3,19 +3,9 @@
 
 ExtrusionSimple::ExtrusionSimple(void)
 {
-	height = 200;
-	sizeRatio = 1.5f;
 	nbPas = 20;
-
-	bSplineBase.controlPoints.push_back(ofVec3f(-200, 0, -200));
-	bSplineBase.controlPoints.push_back(ofVec3f(-200, 0, 100));
-	bSplineBase.controlPoints.push_back(ofVec3f(100, 0, 100));
-	bSplineBase.controlPoints.push_back(ofVec3f(200, 0, -100));
-	bSplineBase.controlPoints.push_back(ofVec3f(200, 0, 200));
-	bSplineBase.nbPas = 20;
-	bSplineBase.CheckKnots();
-	bSplineBase.GenerateBSpline();
-	Extrude();
+	height = 100;
+	sizeRatio = 1;
 }
 
 
@@ -41,6 +31,8 @@ void ExtrusionSimple::Draw()
 				extrusionVertices[i][j+1] );
 		}
 	}
+
+	bSplineBase.Draw();
 }
 
 

@@ -5,16 +5,6 @@ ExtrusionRevolution::ExtrusionRevolution(void)
 {
 	angle = 360;
 	nbPas = 36;
-
-	bSplineBase.controlPoints.push_back(ofVec3f(0, -200, 0));
-	bSplineBase.controlPoints.push_back(ofVec3f(300, -100, 0));
-	bSplineBase.controlPoints.push_back(ofVec3f(100, 0, 0));
-	bSplineBase.controlPoints.push_back(ofVec3f(400, 100, 0));
-	bSplineBase.controlPoints.push_back(ofVec3f(100, 200, 0));
-	bSplineBase.nbPas = 20;
-	bSplineBase.CheckKnots();
-	bSplineBase.GenerateBSpline();
-	Extrude();
 }
 
 
@@ -40,6 +30,8 @@ void ExtrusionRevolution::Draw()
 				extrusionVertices[i][j+1] );
 		}
 	}
+
+	bSplineBase.Draw();
 }
 
 

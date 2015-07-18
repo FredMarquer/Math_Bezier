@@ -9,6 +9,7 @@ public:
 	~BSpline(void);
 
 	void Draw();
+	void DrawPoints();
 
 	void GenerateBSpline();
 	ofVec3f CalculateBSplinePoint(float t, vector<float> T, vector<ofVec3f> controls);

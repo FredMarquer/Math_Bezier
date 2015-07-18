@@ -25,7 +25,11 @@ void BSpline::Draw()
 	imax = controlPoints.size() - 1;
 	for (int i = 0; i < imax; ++i) 
 		ofLine(controlPoints[i], controlPoints[i+1]);
+}
 
+
+void BSpline::DrawPoints()
+{
 	for (int i = 0; i < controlPoints.size(); ++i) {
 		ofPushMatrix();
 		ofTranslate(controlPoints[i]);

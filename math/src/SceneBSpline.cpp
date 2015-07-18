@@ -45,17 +45,17 @@ void SceneBSpline::Update()
 
 	if (isDragMode) {
 		bSplines[draggedBSpline].MoveControl(draggedPoint, ofVec3f(ofGetMouseX(), ofGetMouseY(), 0));
-		/*bSplines[draggedBSpline].controlPoints[draggedPoint] = ofVec3f(ofGetMouseX(), ofGetMouseY(), 0);
-		bSplines[draggedBSpline].GenerateBSpline();*/
 	}
 }
 
 //--------------------------------------------------------------
 void SceneBSpline::Draw()
 {
-	for (int i = 0; i < bSplines.size(); ++i) {
+	for (int i = 0; i < bSplines.size(); ++i)
 		bSplines[i].Draw();
-	}
+	
+	for (int i = 0; i < bSplines.size(); ++i)
+		bSplines[i].DrawPoints();
 
 	if (!isEditMode)
 		guiMain.draw();
